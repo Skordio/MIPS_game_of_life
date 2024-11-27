@@ -1,0 +1,1112 @@
+   1 0000               # File:		life_age.asm
+   2 0000               # Author:	Steven Wells
+   3 0000               # Description:	This program simulates Conway's game life
+   4 0000               #
+   5 0000               #
+   6 0000               # CONSTANTS
+   7 0000               #
+   8 0000               # syscall codes
+   9 0000               PRINT_INT =	1
+  10 0000               PRINT_STR = 	4
+  11 0000               READ_INT = 	5
+  12 0000               READ_STRING =	8
+  13 0000               
+  14 0000               # input check values
+  15 0000               
+  16 0000               ONE_PLUS_MAX_BOARD_SIZE =	31
+  17 0000               MIN_BOARD_SIZE = 	4
+  18 0000               ONE_PLUS_MAX_GENS = 	21
+  19 0000               
+  20 0000               
+  21 0000               	.data
+  22 0000               #game banner
+  23 0000               banner_border:
+  24 0000 2A2A2A2A		.asciiz "*************************************\n"
+          2A2A2A2A
+          2A2A2A2A
+          2A2A2A2A
+          2A2A2A2A
+          2A2A2A2A
+  25 0027               banner_middle:
+  26 0027 2A2A2A2A		.asciiz "****    Game of Life with Age    ****\n"
+          20202020
+          47616D65
+          206F6620
+          4C696665
+          20776974
+  27 004e               	
+  28 004e               #board prompt and error message
+  29 004e               inBoardErr:
+  30 004e 5741524E		.ascii	"WARNING: illegal board size, try again: "
+          494E473A
+          20696C6C
+          6567616C
+          20626F61
+          72642073
+  31 0076               boardPrompt:
+  32 0076 456E7465		.asciiz	"Enter board size: "
+          7220626F
+          61726420
+          73697A65
+          3A2000  
+  33 0089               	
+  34 0089               #generation prompt and error message
+  35 0089               inGenErr:
+  36 0089 5741524E		.asciiz	"WARNING: illegal number of generations, try again: "
+          494E473A
+          20696C6C
+          6567616C
+          206E756D
+          62657220
+  37 00bd               genPrompt:
+  38 00bd 456E7465		.asciiz	"Enter number of generations to run: "
+          72206E75
+          6D626572
+          206F6620
+          67656E65
+          72617469
+  39 00e2               	
+  40 00e2               #live cell num prompt and error message
+  41 00e2               inNumErr:
+  42 00e2 5741524E		.asciiz	"WARNING: illegal number of live cells, try again: "
+          494E473A
+          20696C6C
+          6567616C
+          206E756D
+          62657220
+  43 0115               numPrompt:
+  44 0115 456E7465		.asciiz	"Enter number of live cells: "
+          72206E75
+          6D626572
+          206F6620
+          6C697665
+          2063656C
+  45 0132               	
+  46 0132               #locations prompt and error message
+  47 0132               inLocErr:
+  48 0132 4552524F		.asciiz	"ERROR: illegal point location\n"
+          523A2069
+          6C6C6567
+          616C2070
+          6F696E74
+          206C6F63
+  49 0151               locPrompt:
+  50 0151 53746172		.asciiz	"Start entering locations\n"
+          7420656E
+          74657269
+          6E67206C
+          6F636174
+          696F6E73
+  51 016b               	
+  52 016b               gen_header:
+  53 016b 3D3D3D3D		.asciiz	"====    GENERATION "
+          20202020
+          47454E45
+          52415449
+          4F4E2000
+  54 017f               	
+  55 017f               gen_header_end:
+  56 017f 20202020		.asciiz	"    ====\n"
+          3D3D3D3D
+          0A00    
+  57 0189               	
+  58 0189               
+  59 0189               	
+  60 0189               
+  61 0189               new_line:
+  62 0189 0A00    		.asciiz	"\n"
+  63 018b               	
+  64 018b               #data for the live cell locations:
+  65 018b               live_cells:
+  66 018b 00      		.align 2
+  67 018c 00000000		.space 1800
+          00000000
+          00000000
+          00000000
+          00000000
+          00000000
+  68 0894               	
+  69 0894               #table A
+  70 0894               table_A:
+  71 0894               	.align 2
+  72 0894 00000000		.space 900
+          00000000
+          00000000
+          00000000
+          00000000
+          00000000
+  73 0c18               
+  74 0c18               #table B
+  75 0c18               table_B:
+  76 0c18               	.align 2
+  77 0c18 00000000		.space 900
+          00000000
+          00000000
+          00000000
+          00000000
+          00000000
+  78 0f9c               	
+  79 0f9c               	# probably need to make stuff for the board here but I 
+  80 0f9c               	# am not entirely sure how to but we will see lol
+  81 0f9c               # asciiz stuff needed for printing board
+  82 0f9c               charA:
+  83 0f9c 4100    		.asciiz "A"
+  84 0f9e               charB:
+  85 0f9e 4200    		.asciiz "B"
+  86 0fa0               charC:
+  87 0fa0 4300    		.asciiz "C"
+  88 0fa2               charD:
+  89 0fa2 4400    		.asciiz "D"
+  90 0fa4               charE:
+  91 0fa4 4500    		.asciiz "E"
+  92 0fa6               charF:
+  93 0fa6 4600    		.asciiz "F"
+  94 0fa8               charG:
+  95 0fa8 4700    		.asciiz "G"
+  96 0faa               charH:
+  97 0faa 4800    		.asciiz "H"
+  98 0fac               charI:
+  99 0fac 4900    		.asciiz "I"
+ 100 0fae               charJ:
+ 101 0fae 4A00    		.asciiz "J"
+ 102 0fb0               charK:
+ 103 0fb0 4B00    		.asciiz "K"
+ 104 0fb2               charL:
+ 105 0fb2 4C00    		.asciiz "L"
+ 106 0fb4               charM:
+ 107 0fb4 4D00    		.asciiz "M"
+ 108 0fb6               charN:
+ 109 0fb6 4E00    		.asciiz "N"
+ 110 0fb8               charO:
+ 111 0fb8 4F00    		.asciiz "O"
+ 112 0fba               charP:
+ 113 0fba 5000    		.asciiz "P"
+ 114 0fbc               charQ:
+ 115 0fbc 5100    		.asciiz "Q"
+ 116 0fbe               charR:
+ 117 0fbe 5200    		.asciiz "R"
+ 118 0fc0               charS:
+ 119 0fc0 5300    		.asciiz "S"
+ 120 0fc2               charT:
+ 121 0fc2 5400    		.asciiz "T"
+ 122 0fc4               charU:
+ 123 0fc4 5500    		.asciiz "U"
+ 124 0fc6               	
+ 125 0fc6               plus:
+ 126 0fc6 2B00    		.asciiz	"+"
+ 127 0fc8               dash:
+ 128 0fc8 2D00    		.asciiz	"-"
+ 129 0fca               sideBar:
+ 130 0fca 7C00    		.asciiz	"|"
+ 131 0fcc               emptySpace:
+ 132 0fcc 2000    		.asciiz " "
+ 133 0fce               	
+ 134 0fce               ##############change this name
+ 135 0fce               ages:	
+ 136 0fce 0000    		.word	charA, charB, charC, charD, charE, charF, charG, charH, charI, charJ
+     0fd0 00000F9C
+     0fd4 00000F9E
+     0fd8 00000FA0
+     0fdc 00000FA2
+     0fe0 00000FA4
+ 137 0ff8 00000FB0		.word	charK, charL, charM, charN, charO, charP, charQ, charR, charS, charT
+     0ffc 00000FB2
+     1000 00000FB4
+     1004 00000FB6
+     1008 00000FB8
+     100c 00000FBA
+ 138 1020 00000FC4		.word	charU
+ 139 1024               	
+ 140 1024               ########## main ##########
+ 141 1024               #
+ 142 1024               # prompt 
+ 143 1024               #
+ 144 0000               	.text
+ 145 0000               	.align	2
+ 146 0000               	.globl	main
+ 147 0000               main:
+ 148 0000               	# canonical entry...
+ 149 0000               	#     save $s0 since we will be using it
+ 150 0000               	#
+ 151 0000 23BDFFDC	        addi    $sp, $sp, -36  # space for the s registers
+ 152 0004 AFBF0000	        sw      $ra, 0($sp)    # store the ra on the stack
+ 153 0008 AFB00004	        sw      $s0, 4($sp)
+ 154 000c AFB10008	        sw      $s1, 8($sp)
+ 155 0010 AFB2000C	        sw      $s2, 12($sp)
+ 156 0014 AFB30010	        sw      $s3, 16($sp)
+ 157 0018 AFB40014	        sw      $s4, 20($sp)
+ 158 001c AFB50018	        sw      $s5, 24($sp)
+ 159 0020 AFB6001C	        sw      $s6, 28($sp)
+ 160 0024 AFB70020	        sw      $s7, 32($sp)
+ 161 0028               
+ 162 0028               	#print the banner
+ 163 0028 3C040000		la	$a0, new_line	# load newline and print it
+     002c 34840000
+ 164 0030 34020004		li	$v0, PRINT_STR
+ 165 0034 0000000C		syscall
+ 166 0038               	
+ 167 0038 3C040000		la	$a0, banner_border	# load top of banner and print it
+     003c 34840000
+ 168 0040 34020004		li	$v0, PRINT_STR
+ 169 0044 0000000C		syscall
+ 170 0048               
+ 171 0048 3C040000		la	$a0, banner_middle	# load the middle of banner and print it
+     004c 34840000
+ 172 0050 34020004		li	$v0, PRINT_STR
+ 173 0054 0000000C		syscall
+ 174 0058               
+ 175 0058 3C040000		la	$a0, banner_border	# load the bottom of the banner and print it
+     005c 34840000
+ 176 0060 34020004		li	$v0, PRINT_STR
+ 177 0064 0000000C		syscall
+ 178 0068               	
+ 179 0068 3C040000		la	$a0, new_line	# another new line now before prompts
+     006c 34840000
+ 180 0070 34020004		li	$v0, PRINT_STR
+ 181 0074 0000000C		syscall
+ 182 0078               
+ 183 0078               	# input section
+ 184 0078 3C040000		la	$a0, boardPrompt
+     007c 34840000
+ 185 0080               _in_board_retry:	
+ 186 0080 34020004		li	$v0, PRINT_STR
+ 187 0084 0000000C		syscall
+ 188 0088 34020005		li	$v0, READ_INT	# read integer
+ 189 008c 0000000C		syscall			# $v0 is users board size
+ 190 0090               	
+ 191 0090 2009001F		addi	$t1, $zero, ONE_PLUS_MAX_BOARD_SIZE 	#t1 is 1+max board size now
+ 192 0094 200A0004		addi	$t2, $zero, MIN_BOARD_SIZE		#t2 is min board size
+ 193 0098 3C040000		la	$a0, inBoardErr
+     009c 34840000
+ 194 00a0               	
+ 195 00a0               	#check it is below max
+ 196 00a0 0049402A		slt	$t0, $v0, $t1	#if it is less, t0 is 1
+ 197 00a4 1100FFF6		beq	$t0, $zero, _in_board_retry	#jump to retry if the number is more than max
+ 198 00a8               	
+ 199 00a8 004A402A		slt	$t0, $v0, $t2	#if val is less, t0 is 1 and we must error, if 0 it is ok
+ 200 00ac               	
+ 201 00ac 11000001		beq	$t0, $zero, _in_board_ok
+ 202 00b0 08000020		j	_in_board_retry
+ 203 00b4               _in_board_ok:	
+ 204 00b4 00408021		move	$s0, $v0	# $s0 is now the user's valid input for the board size
+ 205 00b8               	
+ 206 00b8 02100018		mul	$s1, $s0, $s0	# s1 is now the number of cells on the board
+     00bc 00008812
+ 207 00c0               	
+ 208 00c0               	#now input for the generations 
+ 209 00c0 3C040000		la	$a0, genPrompt
+     00c4 34840000
+ 210 00c8               _in_gen_retry:
+ 211 00c8 34020004		li	$v0, PRINT_STR
+ 212 00cc 0000000C		syscall
+ 213 00d0 34020005		li	$v0, READ_INT	# read int, this is the number of generations
+ 214 00d4 0000000C		syscall
+ 215 00d8               	
+ 216 00d8 20090015		addi	$t1, $zero, ONE_PLUS_MAX_GENS 	#t1 is 1+max board size now
+ 217 00dc 3C040000		la	$a0, inGenErr
+     00e0 34840000
+ 218 00e4               	
+ 219 00e4               	#check it is below max
+ 220 00e4 0049402A		slt	$t0, $v0, $t1	#if it is less, t0 is 1
+ 221 00e8 1100FFF7		beq	$t0, $zero, _in_gen_retry	#jump to retry if the number is more than max
+ 222 00ec               	
+ 223 00ec 0040402A		slt	$t0, $v0, $zero	#if val is less, t0 is 1 and we must error, if 0 it is ok
+ 224 00f0               	
+ 225 00f0 11000001		beq	$t0, $zero, _in_gen_ok
+ 226 00f4 08000032		j	_in_gen_retry
+ 227 00f8               _in_gen_ok:	
+ 228 00f8 00409021		move	$s2, $v0	# $s2 is now the number of generations we will run for
+ 229 00fc               	
+ 230 00fc               	#now input for the num of live cells
+ 231 00fc 3C040000		la	$a0, numPrompt
+     0100 34840000
+ 232 0104               _in_num_retry:
+ 233 0104 34020004		li	$v0, PRINT_STR
+ 234 0108 0000000C		syscall
+ 235 010c 34020005		li	$v0, READ_INT	# read int, this is the number of live cells
+ 236 0110 0000000C		syscall
+ 237 0114               	
+ 238 0114 00114820		add	$t1, $zero, $s1 	# t1 is max num of cells now
+ 239 0118 21290001		addi	$t1, $t1, 1		# and now it is 1 more for ease of use
+ 240 011c 3C040000		la	$a0, inNumErr
+     0120 34840000
+ 241 0124               	
+ 242 0124               	#check it is below max
+ 243 0124 0049402A		slt	$t0, $v0, $t1	#if it is less, t0 is 1
+ 244 0128 1100FFF6		beq	$t0, $zero, _in_num_retry	#jump to retry if the number is more than max
+ 245 012c               	
+ 246 012c 0040402A		slt	$t0, $v0, $zero	#if val is less, t0 is 1 and we must error, if 0 it is ok
+ 247 0130               	
+ 248 0130 11000001		beq	$t0, $zero, _in_num_ok
+ 249 0134 08000041		j	_in_num_retry
+ 250 0138               _in_num_ok:	
+ 251 0138 00409821		move	$s3, $v0	# $s3 is now the number of alive cells for the program to have
+ 252 013c               	
+ 253 013c               	
+ 254 013c               	
+ 255 013c               	# now for the live cell locations
+ 256 013c 3C040000		la	$a0, locPrompt
+     0140 34840000
+ 257 0144 34020004		li	$v0, PRINT_STR
+ 258 0148 0000000C		syscall
+ 259 014c 3C0E0000		la	$t6, live_cells	# now t6 has the address of the live cell "array"
+     0150 35CE0000
+ 260 0154 0000A021		move	$s4, $zero	# s4 will be the amount of live cells we have already entered
+ 261 0158               	
+ 262 0158 0800005C		j enter_new_live_cell
+ 263 015c               enter_new_live_cell_error:
+ 264 015c 3C040000		la	$a0, inLocErr
+     0160 34840000
+ 265 0164 34020004		li	$v0, PRINT_STR
+ 266 0168 0000000C		syscall
+ 267 016c 080000B3		j _exit		# terminate the program if we get this error
+ 268 0170               enter_new_live_cell:
+ 269 0170 12930016		beq	$s4, $s3, enter_new_live_cell_done
+ 270 0174 34020005		li	$v0, READ_INT	# read int, the row for a potential new live cell
+ 271 0178 0000000C		syscall
+ 272 017c 00405821		move	$t3, $v0	# now t3 is the row for a potential new live cell
+ 273 0180               	
+ 274 0180 34020005		li	$v0, READ_INT	# read int, the row for a potential new live cell
+ 275 0184 0000000C		syscall
+ 276 0188 00406021		move	$t4, $v0	# now t4 is the col for a potential new live cell
+ 277 018c               	
+ 278 018c               	# now check if it is valid
+ 279 018c 00006821		move	$t5, $zero
+ 280 0190 0170682A		slt	$t5, $t3, $s0	#if row is less than board size, t5 is 1, otherwise it is 0
+ 281 0194 11A0FFF1		beq	$t5, $zero, enter_new_live_cell_error	#jump to error if error
+ 282 0198               	
+ 283 0198 00006821		move	$t5, $zero
+ 284 019c 0190682A		slt	$t5, $t4, $s0	#if row is less than board size, t5 is 1, otherwise it is 0
+ 285 01a0 11A0FFEE		beq	$t5, $zero, enter_new_live_cell_error	#jump to error if error
+ 286 01a4               	
+ 287 01a4 01602021		move	$a0, $t3	# for the function that checks if it is valid
+ 288 01a8 01802821		move	$a1, $t4
+ 289 01ac               	
+ 290 01ac 0C0000BF		jal	live_cell_check # now if it is still valid v0 is 1
+ 291 01b0 1040FFEA		beq	$v0, $zero, enter_new_live_cell_error
+ 292 01b4               	
+ 293 01b4               	#if we made it all the way down here our new cell is valid
+ 294 01b4 22940001		addi	$s4, $s4, 1
+ 295 01b8 ADC40000		sw	$a0, 0($t6)
+ 296 01bc 21CE0004		addi	$t6, $t6, 4
+ 297 01c0 ADC50000		sw	$a1, 0($t6)
+ 298 01c4 21CE0004		addi	$t6, $t6, 4
+ 299 01c8               	
+ 300 01c8 0800005C		j	enter_new_live_cell
+ 301 01cc               
+ 302 01cc               enter_new_live_cell_done:
+ 303 01cc               
+ 304 01cc 0000A021		move	$s4, $zero	#not using s4 for anything anymore, it will be used next
+ 305 01d0               
+ 306 01d0               ################################################input done ####################
+ 307 01d0                    ####################################################################
+ 308 01d0                    ####################################################################
+ 309 01d0               	
+ 310 01d0               	# put empty space into the tables
+ 311 01d0               	
+ 312 01d0 3C040000		la	$a0, table_A
+     01d4 34840000
+ 313 01d8 0C000138		jal 	fill_with_emptyspace
+ 314 01dc 3C040000		la	$a0, table_B
+     01e0 34840000
+ 315 01e4 0C000138		jal 	fill_with_emptyspace
+ 316 01e8               	
+ 317 01e8               	#now take the cell locations and put new cells there
+ 318 01e8               	# tools: 	live_cells 
+ 319 01e8               	#		$s3 is num of alive cells
+ 320 01e8               	
+ 321 01e8 0000A021		move	$s4, $zero	#s4 will be the counter
+ 322 01ec 3C150000		la	$s5, live_cells	#t1 points to the live cells table, increment by 4
+     01f0 36B50000
+ 323 01f4               initialize_cells_A:
+ 324 01f4 12930009		beq	$s4, $s3, done_initializing_cells_A
+ 325 01f8               	
+ 326 01f8 3C040000		la	$a0, table_A	#initialize into table a
+     01fc 34840000
+ 327 0200               	
+ 328 0200 8EA50000		lw	$a1, 0($s5)	# now a1 has the row value	
+ 329 0204 22B50004		addi	$s5, $s5, 4
+ 330 0208               	
+ 331 0208 8EA60000		lw	$a2, 0($s5)	# now a2 has the col value
+ 332 020c               	
+ 333 020c 0C000146		jal	create_life	#create life
+ 334 0210               	
+ 335 0210 22B50004		addi	$s5, $s5, 4	# counters
+ 336 0214 22940001		addi	$s4, $s4, 1
+ 337 0218 0800007D		j	initialize_cells_A
+ 338 021c               done_initializing_cells_A:
+ 339 021c               
+ 340 021c               #now take the cell locations and put new cells there
+ 341 021c               	# tools: 	live_cells 
+ 342 021c               	#		$s3 is num of alive cells
+ 343 021c               	
+ 344 021c 0000A021		move	$s4, $zero	#s4 will be the counter
+ 345 0220 3C150000		la	$s5, live_cells	#t1 points to the live cells table, increment by 4
+     0224 36B50000
+ 346 0228               initialize_cells_B:
+ 347 0228 12930009		beq	$s4, $s3, done_initializing_cells_B
+ 348 022c               	
+ 349 022c 3C040000		la	$a0, table_B	#initialize into table a
+     0230 34840000
+ 350 0234               	
+ 351 0234 8EA50000		lw	$a1, 0($s5)	# now a1 has the row value	
+ 352 0238 22B50004		addi	$s5, $s5, 4
+ 353 023c               	
+ 354 023c 8EA60000		lw	$a2, 0($s5)	# now a2 has the col value
+ 355 0240               	
+ 356 0240 0C000146		jal	create_life	#create life
+ 357 0244               	
+ 358 0244 22B50004		addi	$s5, $s5, 4	# counters
+ 359 0248 22940001		addi	$s4, $s4, 1
+ 360 024c 0800008A		j	initialize_cells_B
+ 361 0250               done_initializing_cells_B:
+ 362 0250               
+ 363 0250 0000A021		move	$s4, $zero
+ 364 0254 0000A821		move	$s5, $zero	#done with these registers
+ 365 0258               	
+ 366 0258               	
+ 367 0258               
+ 368 0258               	# now it is time to move onto the main loop of the program
+ 369 0258 3C040000		la	$a0, table_A
+     025c 34840000
+ 370 0260 00002821		move	$a1, $zero
+ 371 0264 0C0000CE		jal 	print_board
+ 372 0268               
+ 373 0268 0000A021		move	$s4, $zero	# s4 will be the generation counter
+ 374 026c               main_loop:
+ 375 026c 12920017		beq	$s4, $s2, _exit
+ 376 0270 3C040000		la	$a0, table_B
+     0274 34840000
+ 377 0278 3C050000		la	$a1, table_A
+     027c 34A50000
+ 378 0280 0C0000CE		jal	print_board
+ 379 0284 0C000156		jal	next_gen
+ 380 0288               	
+ 381 0288 3C040000		la	$a0, table_B
+     028c 34840000
+ 382 0290 22850001		addi	$a1, $s4, 1
+ 383 0294 0C0000CE		jal	print_board
+ 384 0298 22940001		addi	$s4, $s4, 1
+ 385 029c               	
+ 386 029c 1292000B		beq	$s4, $s2, _exit
+ 387 02a0 3C040000		la	$a0, table_A
+     02a4 34840000
+ 388 02a8 3C050000		la	$a1, table_B
+     02ac 34A50000
+ 389 02b0 0C000156		jal 	next_gen
+ 390 02b4               	
+ 391 02b4               	
+ 392 02b4 3C040000		la	$a0, table_A
+     02b8 34840000
+ 393 02bc 22850001		addi	$a1, $s4, 1
+ 394 02c0 0C0000CE		jal	print_board
+ 395 02c4 22940001		addi	$s4, $s4, 1
+ 396 02c8               	
+ 397 02c8 0800009B		j	main_loop
+ 398 02cc               	
+ 399 02cc               
+ 400 02cc               _exit:
+ 401 02cc               	# canonical exit...
+ 402 02cc               	#
+ 403 02cc 34020000		li	$v0, 0		# nominal exit
+ 404 02d0               	
+ 405 02d0 8FB70020	        lw      $s7, 32($sp)	# clean up stack
+ 406 02d4 8FB6001C	        lw      $s6, 28($sp)
+ 407 02d8 8FB50018	        lw      $s5, 24($sp)
+ 408 02dc 8FB40014	        lw      $s4, 20($sp)
+ 409 02e0 8FB30010	        lw      $s3, 16($sp)
+ 410 02e4 8FB2000C	        lw      $s2, 12($sp)
+ 411 02e8 8FB10008	        lw      $s1, 8($sp)
+ 412 02ec 8FB00004	        lw      $s0, 4($sp)
+ 413 02f0 8FBF0000	        lw      $ra, 0($sp)
+ 414 02f4 23BD0024	        addi    $sp, $sp, 36
+ 415 02f8 03E00008		jr	$ra
+ 416 02fc               #
+ 417 02fc               ########## end main ##########
+ 418 02fc               
+ 419 02fc               
+ 420 02fc               # Name:		live_cell_check
+ 421 02fc               #
+ 422 02fc               # Description:	Traverse the already recorded live cell locations to see if a
+ 423 02fc               #		new one coincides with any, if it does it is not valid
+ 424 02fc               #
+ 425 02fc               # Arguments:	a0 contains the row number of a potential new cell
+ 426 02fc               #		a1 contains the col number of a potential new cell
+ 427 02fc               #
+ 428 02fc               # Returns:	1 in v0 if the input space is valid, 0 if not
+ 429 02fc               #
+ 430 02fc               # Destroys:	$t0, $t1, $t2
+ 431 02fc               #
+ 432 02fc               live_cell_check:
+ 433 02fc 3C080000		la	$t0, live_cells	# now t0 has the address of the live cell "array"
+     0300 35080000
+ 434 0304 00004821		move	$t1, $zero	# t1 will be the counter, when it equals s4 we stop
+ 435 0308               				# this is because s4 is the number of alive cells that have been entered
+ 436 0308 20020001		addi	$v0, $zero, 1	# v0 is 1 until we find a square that is invalid
+ 437 030c 080000C6		j	cell_check_loop
+ 438 0310               	
+ 439 0310               cell_check_loop_retry:	
+ 440 0310 21080004		addi	$t0, $t0, 4
+ 441 0314 21290001		addi	$t1, $t1, 1
+ 442 0318               cell_check_loop:
+ 443 0318               	# right now t0 points to the next row value to check
+ 444 0318 11340006		beq	$t1, $s4, cell_check_loop_done	# if t1 == s4 then we are done
+ 445 031c 8D0A0000		lw	$t2, 0($t0)	# load the current value from live cell array into t2
+ 446 0320 21080004		addi	$t0, $t0, 4	# now t0 points to the col value
+ 447 0324               	
+ 448 0324 1544FFFA		bne	$t2, $a0, cell_check_loop_retry	# check against a0 and if they aren't =
+ 449 0328               						# then just restart the loop
+ 450 0328 8D0A0000		lw	$t2, 0($t0)	# load the col value from the array into t2			
+ 451 032c 1545FFF8		bne	$t2, $a1, cell_check_loop_retry	# if t2 and a1 arent = restart loop
+ 452 0330               	
+ 453 0330               	#otherwise we have found a match and it is invalid
+ 454 0330 00001021		move 	$v0, $zero
+ 455 0334               	
+ 456 0334               cell_check_loop_done:
+ 457 0334 03E00008		jr 	$ra
+ 458 0338               
+ 459 0338               
+ 460 0338               # Returns:		none
+ 461 0338               # # Name:		print_table
+ 462 0338               #
+ 463 0338               # Description:	print out the given generation
+ 464 0338               #
+ 465 0338               # Arguments:	a0 contains the address of the table
+ 466 0338               #		a1 contains the the generation number
+ 467 0338               #
+ 468 0338               # Returns:	1 in v0 if the input space is valid, 0 if not
+ 469 0338               #
+ 470 0338               print_board:
+ 471 0338 23BDFFE0		addi	$sp, $sp, -32	# stack stuff except s0 because we will use it
+ 472 033c AFBF001C		sw	$ra, 28($sp)	#				for board size
+ 473 0340 AFB70018		sw	$s7, 24($sp)
+ 474 0344 AFB60014		sw	$s6, 20($sp)
+ 475 0348 AFB50010		sw	$s5, 16($sp)
+ 476 034c AFB4000C		sw	$s4, 12($sp)
+ 477 0350 AFB30008		sw	$s3, 8($sp)
+ 478 0354 AFB20004		sw	$s2, 4($sp)
+ 479 0358 AFB10000		sw	$s1, 0($sp)
+ 480 035c               	
+ 481 035c 00808821		move	$s1, $a0	# s1 is addr of table
+ 482 0360 00A09021		move	$s2, $a1	# s2 is generation num
+ 483 0364               	
+ 484 0364 34020004		li	$v0, PRINT_STR	#generation header stuff
+ 485 0368 3C040000		la	$a0, new_line
+     036c 34840000
+ 486 0370 0000000C		syscall			# prints a new line
+ 487 0374               	
+ 488 0374 34020004		li	$v0, PRINT_STR
+ 489 0378 3C040000		la	$a0, gen_header
+     037c 34840000
+ 490 0380 0000000C		syscall			# prints the start of the gen header
+ 491 0384               	
+ 492 0384 34020001		li	$v0, PRINT_INT
+ 493 0388 02402021		move	$a0, $s2	# seperated to print the number
+ 494 038c 0000000C		syscall
+ 495 0390               	
+ 496 0390 34020004		li	$v0, PRINT_STR
+ 497 0394 3C040000		la	$a0, gen_header_end
+     0398 34840000
+ 498 039c 0000000C		syscall			# prints the end of the gen header
+ 499 03a0               	
+ 500 03a0 34020004		li	$v0, PRINT_STR
+ 501 03a4 3C040000		la	$a0, plus	# first plus
+     03a8 34840000
+ 502 03ac 0000000C		syscall
+ 503 03b0               	
+ 504 03b0               	# now onto the border
+ 505 03b0 00004021		move	$t0, $zero	# t0 is now a counter
+ 506 03b4               print_initial_border_loop:
+ 507 03b4 11100006		beq	$t0, $s0, print_initial_border_loop_done	
+ 508 03b8               					# if t0 = boardsize we done with border
+ 509 03b8 34020004		li	$v0, PRINT_STR
+ 510 03bc 3C040000		la	$a0, dash
+     03c0 34840000
+ 511 03c4 0000000C		syscall
+ 512 03c8 21080001		addi	$t0, $t0, 1	#increment counter
+ 513 03cc 080000ED		j	print_initial_border_loop
+ 514 03d0               print_initial_border_loop_done:
+ 515 03d0 34020004		li	$v0, PRINT_STR
+ 516 03d4 3C040000		la	$a0, plus
+     03d8 34840000
+ 517 03dc 0000000C		syscall
+ 518 03e0 34020004		li	$v0, PRINT_STR
+ 519 03e4 3C040000		la	$a0, new_line
+     03e8 34840000
+ 520 03ec 0000000C		syscall
+ 521 03f0               	
+ 522 03f0 00004021		move	$t0, $zero	# t0 will be the counter for the row num
+ 523 03f4               print_game_rows_loop:
+ 524 03f4 1110001C		beq	$t0, $s0, print_game_rows_loop_done	# if t0 greater than board size we end loop
+ 525 03f8 34020004		li	$v0, PRINT_STR
+ 526 03fc 3C040000		la	$a0, sideBar
+     0400 34840000
+ 527 0404 0000000C		syscall
+ 528 0408 00004821		move	$t1, $zero	# t1 will be the counter for the col num
+ 529 040c 02080018		mul	$t2, $s0, $t0	# t2 will be the address of the cell we are currently
+     0410 00005012
+ 530 0414               				# looking at
+ 531 0414 34010004		mul	$t2, $t2, 4
+     0418 01410018
+     041c 00005012
+ 532 0420 01515020		add	$t2, $t2, $s1	# s1 is board addr
+ 533 0424               print_cells_in_row_loop:
+ 534 0424 11300006		beq	$t1, $s0, print_cells_in_row_loop_done	
+ 535 0428               				# if t1 greater than boardsize we end loop
+ 536 0428 8D440000		lw	$a0, 0($t2)	# load the word contained in the current cell to print
+ 537 042c 34020004		li	$v0, PRINT_STR
+ 538 0430 0000000C		syscall			# print it
+ 539 0434 21290001		addi	$t1, $t1, 1	# increment col
+ 540 0438 214A0004		addi	$t2, $t2, 4	# next address
+ 541 043c 08000109		j	print_cells_in_row_loop
+ 542 0440               print_cells_in_row_loop_done:
+ 543 0440 34020004		li	$v0, PRINT_STR
+ 544 0444 3C040000		la	$a0, sideBar
+     0448 34840000
+ 545 044c 0000000C		syscall			# print the sidebar now
+ 546 0450 34020004		li	$v0, PRINT_STR
+ 547 0454 3C040000		la	$a0, new_line
+     0458 34840000
+ 548 045c 0000000C		syscall			# and a new line, to go onto the next row
+ 549 0460 21080001		addi	$t0, $t0, 1
+ 550 0464 080000FD		j	print_game_rows_loop
+ 551 0468               print_game_rows_loop_done:
+ 552 0468 34020004		li	$v0, PRINT_STR
+ 553 046c 3C040000		la	$a0, plus
+     0470 34840000
+ 554 0474 0000000C		syscall			# the first plus
+ 555 0478               	
+ 556 0478 00004021		move	$t0, $zero	# border counter
+ 557 047c               print_final_border:
+ 558 047c 11100006		beq	$t0, $s0, print_final_border_done	# above boardsize then end
+ 559 0480 34020004		li	$v0, PRINT_STR
+ 560 0484 3C040000		la	$a0, dash
+     0488 34840000
+ 561 048c 0000000C		syscall
+ 562 0490 21080001		addi	$t0, $t0, 1
+ 563 0494 0800011F		j	print_final_border
+ 564 0498               print_final_border_done:
+ 565 0498 34020004		li	$v0, PRINT_STR
+ 566 049c 3C040000		la	$a0, plus
+     04a0 34840000
+ 567 04a4 0000000C		syscall
+ 568 04a8 34020004		li	$v0, PRINT_STR
+ 569 04ac 3C040000		la	$a0, new_line
+     04b0 34840000
+ 570 04b4 0000000C		syscall
+ 571 04b8               
+ 572 04b8 8FBF001C		lw	$ra, 28($sp)	#stack stuff
+ 573 04bc 8FB70018		lw	$s7, 24($sp)
+ 574 04c0 8FB60014		lw	$s6, 20($sp)
+ 575 04c4 8FB50010		lw	$s5, 16($sp)
+ 576 04c8 8FB4000C		lw	$s4, 12($sp)
+ 577 04cc 8FB30008		lw	$s3, 8($sp)
+ 578 04d0 8FB20004		lw	$s2, 4($sp)
+ 579 04d4 8FB10000		lw	$s1, 0($sp)
+ 580 04d8 23BD0020		addi	$sp, $sp, 32
+ 581 04dc 03E00008		jr	$ra
+ 582 04e0               
+ 583 04e0               
+ 584 04e0               # Name:		fill_with_emptyspace
+ 585 04e0               #
+ 586 04e0               # Description:	fill a table with emptyspace
+ 587 04e0               #
+ 588 04e0               # Arguments:	a0 contains the address of the table
+ 589 04e0               #
+ 590 04e0               # Returns:	nothing
+ 591 04e0               #
+ 592 04e0               # Destroys:	t0, t1, t2
+ 593 04e0               #emptySpace is label
+ 594 04e0               fill_with_emptyspace:
+ 595 04e0 23BDFFFC		addi	$sp, $sp, -4
+ 596 04e4 AFBF0000		sw	$ra, 0($sp)
+ 597 04e8               
+ 598 04e8               	#s1 is the number of cells on the board
+ 599 04e8 00004021		move	$t0, $zero	# t0 will be the counter
+ 600 04ec 00804821		move	$t1, $a0	# t1 is the addr of the current cell
+ 601 04f0 3C0A0000		la	$t2, emptySpace	# t3 is what we will put into every word
+     04f4 354A0000
+ 602 04f8               	
+ 603 04f8               empty_space_filler_loop:
+ 604 04f8 11110004		beq	$t0, $s1, empty_space_loop_done
+ 605 04fc AD2A0000		sw	$t2, 0($t1)
+ 606 0500 21290004		addi	$t1, $t1, 4
+ 607 0504 21080001		addi	$t0, $t0, 1
+ 608 0508 0800013E		j empty_space_filler_loop
+ 609 050c               	
+ 610 050c               empty_space_loop_done:
+ 611 050c 8FBF0000		lw	$ra, 0($sp)
+ 612 0510 23BD0004		addi	$sp, $sp, 4
+ 613 0514 03E00008		jr	$ra
+ 614 0518               
+ 615 0518               
+ 616 0518               # Name:		create_life
+ 617 0518               #
+ 618 0518               # Description:	turn an empty cell into a living one
+ 619 0518               #
+ 620 0518               # Arguments:	a0 contains the address of the table
+ 621 0518               #		a1 contains the row value
+ 622 0518               #		a2 contains the col value
+ 623 0518               #		
+ 624 0518               #		#we can use this formula: memory location = (row*boardsize+col)*4
+ 625 0518               #
+ 626 0518               # Returns:	nothing
+ 627 0518               create_life:
+ 628 0518               
+ 629 0518 23BDFFFC		addi	$sp, $sp, -4
+ 630 051c AFBF0000		sw	$ra, 0($sp)
+ 631 0520               	
+ 632 0520 34090004		li	$t1, 4
+ 633 0524 02050018		mul	$t0, $s0, $a1	# row*boardsize
+     0528 00004012
+ 634 052c 01064020		add	$t0, $t0, $a2	# +col)
+ 635 0530 01090018		mul	$t0, $t0, $t1	# *4
+     0534 00004012
+ 636 0538 01044020		add	$t0, $t0, $a0	# + og board memory location
+ 637 053c               	
+ 638 053c               	#now t0 has the mem loc of the cell to give life
+ 639 053c               	
+ 640 053c 3C0A0000		la	$t2, ages	# load addr of the ages into t2
+     0540 354A0000
+ 641 0544 8D4B0000		lw	$t3, 0($t2)	# load the first age value into t3
+ 642 0548 AD0B0000		sw	$t3, 0($t0)	# and save it into the cell that is newly alive	
+ 643 054c               	
+ 644 054c 8FBF0000		lw	$ra, 0($sp)
+ 645 0550 23BD0004		addi	$sp, $sp, 4
+ 646 0554 03E00008		jr	$ra
+ 647 0558               	
+ 648 0558               # Name:		next_gen
+ 649 0558               #
+ 650 0558               # Description:	does a round of the game of life
+ 651 0558               #
+ 652 0558               # Arguments:	a0 contains the address of the table to generate into
+ 653 0558               #		a1 contains the address of the previous generation
+ 654 0558               #
+ 655 0558               # Returns:	nothing
+ 656 0558               next_gen:
+ 657 0558 23BDFFE4		addi	$sp, $sp, -28
+ 658 055c AFBF0018		sw	$ra, 24($sp)
+ 659 0560 AFB70014		sw	$s7, 20($sp)
+ 660 0564 AFB60010		sw	$s6, 16($sp)
+ 661 0568 AFB5000C		sw	$s5, 12($sp)
+ 662 056c AFB40008		sw	$s4, 8($sp)
+ 663 0570 AFB30004		sw	$s3, 4($sp)
+ 664 0574 AFB20000		sw	$s2, 0($sp)
+ 665 0578               	
+ 666 0578 0080B021		move	$s6, $a0	#s6 is the addr of the new table
+ 667 057c 00A0A821		move	$s5, $a1	#s5 is the addr of the old table
+ 668 0580               	
+ 669 0580 00A09021		move	$s2, $a1	#s2 is the addr of the current cell, old gen
+ 670 0584 00009821		move	$s3, $zero	#s3 is a cell counter
+ 671 0588               	
+ 672 0588               traverse_all_cells:
+ 673 0588 12710034		beq	$s3, $s1, done_all_cells	# if the counter goes over cell num, end
+ 674 058c 8E540000		lw	$s4, 0($s2)		# s4 has the current cell old gen value
+ 675 0590 34010004		mul	$t0, $s3, 4		# cell counter*4 is t0
+     0594 02610018
+     0598 00004012
+ 676 059c 02C84820		add	$t1, $s6, $t0		# then it becomes the mem loc for current cell new table
+ 677 05a0 AD340000		sw	$s4, 0($t1)		# then save the value into the new array
+ 678 05a4               	
+ 679 05a4               	#now we need to check the neighbors
+ 680 05a4 02A02021		move	$a0, $s5
+ 681 05a8 02402821		move	$a1, $s2
+ 682 05ac 0C0001A3		jal	find_neighbors
+ 683 05b0               	#now v0 has the number of neighbors for the current cell
+ 684 05b0               	
+ 685 05b0 3C080000		la	$t0, emptySpace		# now t0 has emptyspace
+     05b4 35080000
+ 686 05b8 1288000C		beq	$s4, $t0, dead_cell	# if the current cell old gen value is empty
+ 687 05bc               					# then it is currently dead
+ 688 05bc               					
+ 689 05bc               	#every cell that makes it here will be alive
+ 690 05bc               					
+ 691 05bc 34080001		li	$t0, 1			# need to check neighbors against 1
+ 692 05c0 34090003		li	$t1, 3
+ 693 05c4               	
+ 694 05c4 10400015		beq	$v0, $zero, cell_dies	# if 0 neighbors, then death
+ 695 05c8 10480014		beq	$v0, $t0, cell_dies	# if 1 neighbor, then death
+ 696 05cc 0122502A		slt	$t2, $t1, $v0		# if 3 < neighbors
+ 697 05d0 15400012		bne	$t2, $zero, cell_dies	# then death
+ 698 05d4 34080002		li	$t0, 2
+ 699 05d8 10480018		beq	$v0, $t0, cell_ages	# if 2 or three neighbors, cell ages
+ 700 05dc 10490017		beq	$v0, $t1, cell_ages
+ 701 05e0               done_with_cell:
+ 702 05e0 22520004		addi	$s2, $s2, 4		# increment addr of current cell, old gen
+ 703 05e4 22730001		addi	$s3, $s3, 1		# increment cell counter
+ 704 05e8 08000162		j	traverse_all_cells
+ 705 05ec               dead_cell:
+ 706 05ec 34080003		li	$t0, 3
+ 707 05f0 10480001		beq	$v0, $t0, become_alive	# if it has three neighbors, live
+ 708 05f4 08000178		j	done_with_cell
+ 709 05f8               become_alive:
+ 710 05f8 34010004		mul	$t0, $s3, 4		# 
+     05fc 02610018
+     0600 00004012
+ 711 0604 02C84820		add	$t1, $s6, $t0
+ 712 0608 3C0B0000		la	$t3, ages
+     060c 356B0000
+ 713 0610 8D6A0000		lw	$t2, 0($t3)
+ 714 0614 AD2A0000		sw 	$t2, 0($t1)
+ 715 0618 08000178		j	done_with_cell
+ 716 061c               cell_dies:
+ 717 061c 34010004		mul	$t0, $s3, 4
+     0620 02610018
+     0624 00004012
+ 718 0628 02C84820		add	$t1, $s6, $t0
+ 719 062c 3C0A0000		la	$t2, emptySpace
+     0630 354A0000
+ 720 0634 AD2A0000		sw 	$t2, 0($t1)
+ 721 0638 08000178		j	done_with_cell
+ 722 063c               cell_ages:
+ 723 063c 34010004		mul	$t0, $s3, 4
+     0640 02610018
+     0644 00004012
+ 724 0648 02C84820		add	$t1, $s6, $t0
+ 725 064c 8E4A0000		lw	$t2, 0($s2)
+ 726 0650 214A0002		addi	$t2, $t2, 2
+ 727 0654 AD2A0000		sw 	$t2, 0($t1)
+ 728 0658 08000178		j	done_with_cell
+ 729 065c               done_all_cells:
+ 730 065c 02E02021		move	$a0, $s7
+ 731 0660 02C02821		move	$a1, $s6
+ 732 0664 02A03021		move	$a2, $s5
+ 733 0668               
+ 734 0668 8FBF0018		lw	$ra, 24($sp)
+ 735 066c 8FB70014		lw	$s7, 20($sp)
+ 736 0670 8FB60010		lw	$s6, 16($sp)
+ 737 0674 8FB5000C		lw	$s5, 12($sp)
+ 738 0678 8FB40008		lw	$s4, 8($sp)
+ 739 067c 8FB30004		lw	$s3, 4($sp)
+ 740 0680 8FB20000		lw	$s2, 0($sp)
+ 741 0684 23BD001C		addi	$sp, $sp, 28
+ 742 0688 03E00008		jr	$ra
+ 743 068c               	
+ 744 068c               	
+ 745 068c               		
+ 746 068c               # Name:		find_neighbors
+ 747 068c               #
+ 748 068c               # Description:	takes a cell in the current board and finds all neighbors
+ 749 068c               #
+ 750 068c               # Arguments:	a0 contains the address of the table to generate into
+ 751 068c               #		a1 contains the address of the current cell
+ 752 068c               #
+ 753 068c               # Returns:	v0 contains the number of neighbors for the current cell
+ 754 068c               find_neighbors:
+ 755 068c 23BDFFE0		addi	$sp, $sp, -32
+ 756 0690 AFBF001C		sw	$ra, 28($sp)
+ 757 0694 AFB70018		sw	$s7, 24($sp)
+ 758 0698 AFB60014		sw	$s6, 20($sp)
+ 759 069c AFB50010		sw	$s5, 16($sp)
+ 760 06a0 AFB4000C		sw	$s4, 12($sp)
+ 761 06a4 AFB30008		sw	$s3, 8($sp)
+ 762 06a8 AFB20004		sw	$s2, 4($sp)
+ 763 06ac AFB10000		sw	$s1, 0($sp)
+ 764 06b0               	
+ 765 06b0               	
+ 766 06b0               	
+ 767 06b0 00A44022		sub	$t0, $a1, $a0	#subtract offset loc from tabl addr to get the offset
+ 768 06b4 34010004		div	$t0, $t0, 4	#divide by 4 to get the current index
+     06b8 0101001A
+     06bc 00004012
+ 769 06c0 0110001A		div	$t0, $s0	#and divide this again to put the 
+ 770 06c4 00009012		mflo	$s2		#row here and the
+ 771 06c8 00009810		mfhi	$s3		#col here
+ 772 06cc               	
+ 773 06cc 22480001		addi	$t0, $s2, 1	#t0 is the row+1
+ 774 06d0 0110001A		div	$t0, $s0	#row/board size
+ 775 06d4 00005010		mfhi	$t2		#t2 is (row+1)%boardsize
+ 776 06d8               				# so it is 0 if max row, and just 1+row otherwise
+ 777 06d8               	
+ 778 06d8 2248FFFF		addi	$t0, $s2, -1	#t0 is the row-1
+ 779 06dc 0110001A		div	$t0, $s0		
+ 780 06e0 00005810		mfhi	$t3		#t3 is row-1%boardsize
+ 781 06e4               	
+ 782 06e4 0160482A		slt	$t1, $t3, $zero			#if t3 is -1 then we are at the bottom row
+ 783 06e8 15200001		bne	$t1, $zero, on_the_bottom_row	#if t1=1, row_negative
+ 784 06ec 080001BD		j	row_is_correct
+ 785 06f0               on_the_bottom_row:
+ 786 06f0 220BFFFF		addi	$t3, $s0, -1		#if we are at the bottom, t3 is max col
+ 787 06f4               	
+ 788 06f4               	
+ 789 06f4               row_is_correct:
+ 790 06f4 22680001		addi	$t0, $s3, 1		#t0 is col + 1
+ 791 06f8 0110001A		div	$t0, $s0		#mfhi is col + 1%boardsize
+ 792 06fc 00006010		mfhi	$t4			#t4 is col+1%boardsize
+ 793 0700 2268FFFF		addi	$t0, $s3, -1		#t0 is col - 1
+ 794 0704 0110001A		div	$t0, $s0		#mfhi is col - 1%boardsize
+ 795 0708 00006810		mfhi	$t5			#t5 is col - 1%boardsize
+ 796 070c 01A0482A		slt	$t1, $t5, $zero		#t1 is 1 if col - 1%boardsize is negative
+ 797 0710 15200001		bne	$t1, $zero, on_the_bottom_col
+ 798 0714 080001C7		j	col_is_correct
+ 799 0718               on_the_bottom_col:
+ 800 0718 220DFFFF		addi	$t5, $s0, -1		# if t5 is at the bottom it is max
+ 801 071c               col_is_correct:
+ 802 071c               
+ 803 071c               
+ 804 071c               	#now we have what we need to check for neighbors, and live ones
+ 805 071c               	#t2	is wraparound row+1
+ 806 071c               	#t3 	is wraparound row-1
+ 807 071c               	#t4 	is wraparound col+1
+ 808 071c               	#t5	is wraparound col-1
+ 809 071c               	#we will compare the row and col of the currently selected square
+ 810 071c               
+ 811 071c               
+ 812 071c 00001021		move	$v0, $zero	#v0 is the counter for all the neighbors
+ 813 0720 0000A021		move	$s4, $zero	#s4 = loop counter
+ 814 0724               scan_table_for_neighbors_loop:
+ 815 0724 12910016		beq	$s4, $s1, scan_table_for_neighbors_loop_done	#end loop if counter too far
+ 816 0728 0290001A		div	$s4, $s0							
+ 817 072c 00004012		mflo	$t0				#t0 is now the row num
+ 818 0730 00004810		mfhi	$t1				#t1 is now the col num
+ 819 0734               	
+ 820 0734               	#check if row is the right row for the cell to be a neighbor
+ 821 0734 110A0002		beq	$t0, $t2, col_check_wraparound	# if the current loop row num matches t2
+ 822 0738               						# then we are in the right row but on the
+ 823 0738 110B0001		beq	$t0, $t3, col_check_wraparound	# top or bottom row
+ 824 073c 11120004		beq	$t0, $s2, col_check		# if it is s2 then we are in the middle
+ 825 0740               	
+ 826 0740               #check this when the col # is at the top or bottom
+ 827 0740               col_check_wraparound:
+ 828 0740 112C0006		beq	$t1, $t4, cell_is_neighbor
+ 829 0744 112D0005		beq	$t1, $t5, cell_is_neighbor
+ 830 0748 11330004		beq	$t1, $s3, cell_is_neighbor
+ 831 074c 080001DD		j	go_to_next_neighbor
+ 832 0750               #check this when the col # is in the middle
+ 833 0750               col_check:
+ 834 0750 112C0002		beq	$t1, $t4, cell_is_neighbor
+ 835 0754 112D0001		beq	$t1, $t5, cell_is_neighbor
+ 836 0758 080001DD		j	go_to_next_neighbor
+ 837 075c               cell_is_neighbor:
+ 838 075c 8C8E0000		lw	$t6, 0($a0)		#if it is a neighbor then load the current cell into t6
+ 839 0760 3C0F0000		la	$t7, emptySpace		#and check it against emptySpace
+     0764 35EF0000
+ 840 0768 15CF0001		bne	$t6, $t7, neighbor_is_alive	#if they aren't equal it's a live one
+ 841 076c 080001DD		j	go_to_next_neighbor
+ 842 0770               neighbor_is_alive:
+ 843 0770 20420001		addi	$v0, $v0, 1
+ 844 0774               go_to_next_neighbor:
+ 845 0774 20840004		addi	$a0, $a0, 4	#increment
+ 846 0778 22940001		addi	$s4, $s4, 1
+ 847 077c 080001C9		j	scan_table_for_neighbors_loop
+ 848 0780               	
+ 849 0780               scan_table_for_neighbors_loop_done:
+ 850 0780 8FBF0020		lw	$ra, 32($sp)
+ 851 0784 8FB7001C		lw	$s7, 28($sp)
+ 852 0788 8FB60018		lw	$s6, 24($sp)
+ 853 078c 8FB50014		lw	$s5, 20($sp)
+ 854 0790 8FB40010		lw	$s4, 16($sp)
+ 855 0794 8FB3000C		lw	$s3, 12($sp)
+ 856 0798 8FB20008		lw	$s2,  8($sp)
+ 857 079c 8FB10004		lw	$s1,  4($sp)
+ 858 07a0 8FB00000		lw	$s0,  0($sp)
+ 859 07a4 23BD0024		addi	$sp, $sp, 36
+ 860 07a8 03E00008		jr	$ra
+
+
+               Name                 F  Value   M V Sect.                          References
+----------------------------------  - -------- - - ----- -------------------------------------------------------------
+MIN_BOARD_SIZE                        00000004 =         @   18, 192
+ONE_PLUS_MAX_BOARD_SIZE               0000001F =         @   17, 191
+ONE_PLUS_MAX_GENS                     00000015 =         @   19, 216
+PRINT_INT                             00000001 =         @   10, 492
+PRINT_STR                             00000004 =         @   11, 164, 168, 172, 176, 180, 186, 211, 233, 257, 265, 484
+                                                         @  488, 496, 500, 509, 515, 518, 525, 537, 543, 546, 552, 559
+                                                         @  565, 568
+READ_INT                              00000005 =         @   12, 188, 213, 235, 270, 274
+READ_STRING                           00000008 =         @   13
+_exit                                 000002CC R   text  @  267, 375, 386, 400
+_in_board_ok                          000000B4 R   text  @  201, 203
+_in_board_retry                       00000080 R   text  @  185, 197, 202
+_in_gen_ok                            000000F8 R   text  @  225, 227
+_in_gen_retry                         000000C8 R   text  @  210, 221, 226
+_in_num_ok                            00000138 R   text  @  248, 250
+_in_num_retry                         00000104 R   text  @  232, 244, 249
+ages                                  00000FD0 R   data  @  135, 640, 712
+banner_border                         00000000 R   data  @   23, 167, 175
+banner_middle                         00000027 R   data  @   25, 171
+become_alive                          000005F8 R   text  @  707, 709
+boardPrompt                           00000076 R   data  @   31, 184
+cell_ages                             0000063C R   text  @  699, 700, 722
+cell_check_loop                       00000318 R   text  @  437, 442
+cell_check_loop_done                  00000334 R   text  @  444, 456
+cell_check_loop_retry                 00000310 R   text  @  439, 448, 451
+cell_dies                             0000061C R   text  @  694, 695, 697, 716
+cell_is_neighbor                      0000075C R   text  @  828, 829, 830, 834, 835, 837
+charA                                 00000F9C R   data  @   82, 136
+charB                                 00000F9E R   data  @   84, 136
+charC                                 00000FA0 R   data  @   86, 136
+charD                                 00000FA2 R   data  @   88, 136
+charE                                 00000FA4 R   data  @   90, 136
+charF                                 00000FA6 R   data  @   92, 136
+charG                                 00000FA8 R   data  @   94, 136
+charH                                 00000FAA R   data  @   96, 136
+charI                                 00000FAC R   data  @   98, 136
+charJ                                 00000FAE R   data  @  100, 136
+charK                                 00000FB0 R   data  @  102, 137
+charL                                 00000FB2 R   data  @  104, 137
+charM                                 00000FB4 R   data  @  106, 137
+charN                                 00000FB6 R   data  @  108, 137
+charO                                 00000FB8 R   data  @  110, 137
+charP                                 00000FBA R   data  @  112, 137
+charQ                                 00000FBC R   data  @  114, 137
+charR                                 00000FBE R   data  @  116, 137
+charS                                 00000FC0 R   data  @  118, 137
+charT                                 00000FC2 R   data  @  120, 137
+charU                                 00000FC4 R   data  @  122, 138
+col_check                             00000750 R   text  @  824, 833
+col_check_wraparound                  00000740 R   text  @  821, 823, 827
+col_is_correct                        0000071C R   text  @  798, 801
+create_life                           00000518 R   text  @  333, 356, 627
+dash                                  00000FC8 R   data  @  127, 510, 560
+dead_cell                             000005EC R   text  @  686, 705
+done_all_cells                        0000065C R   text  @  673, 729
+done_initializing_cells_A             0000021C R   text  @  324, 338
+done_initializing_cells_B             00000250 R   text  @  347, 361
+done_with_cell                        000005E0 R   text  @  701, 708, 715, 721, 728
+emptySpace                            00000FCC R   data  @  131, 601, 685, 719, 839
+empty_space_filler_loop               000004F8 R   text  @  603, 608
+empty_space_loop_done                 0000050C R   text  @  604, 610
+enter_new_live_cell                   00000170 R   text  @  262, 268, 300
+enter_new_live_cell_done              000001CC R   text  @  269, 302
+enter_new_live_cell_error             0000015C R   text  @  263, 281, 285, 291
+fill_with_emptyspace                  000004E0 R   text  @  313, 315, 594
+find_neighbors                        0000068C R   text  @  682, 754
+genPrompt                             000000BD R   data  @   37, 209
+gen_header                            0000016B R   data  @   52, 489
+gen_header_end                        0000017F R   data  @   55, 497
+go_to_next_neighbor                   00000774 R   text  @  831, 836, 841, 844
+inBoardErr                            0000004E R   data  @   29, 193
+inGenErr                              00000089 R   data  @   35, 217
+inLocErr                              00000132 R   data  @   47, 264
+inNumErr                              000000E2 R   data  @   41, 240
+initialize_cells_A                    000001F4 R   text  @  323, 337
+initialize_cells_B                    00000228 R   text  @  346, 360
+live_cell_check                       000002FC R   text  @  290, 432
+live_cells                            0000018C R   data  @   65, 259, 322, 345, 433
+locPrompt                             00000151 R   data  @   49, 256
+main                                  00000000 R G text  @  145, 147
+main_loop                             0000026C R   text  @  374, 397
+neighbor_is_alive                     00000770 R   text  @  840, 842
+new_line                              00000189 R   data  @   61, 163, 179, 485, 519, 547, 569
+next_gen                              00000558 R   text  @  379, 389, 656
+numPrompt                             00000115 R   data  @   43, 231
+on_the_bottom_col                     00000718 R   text  @  797, 799
+on_the_bottom_row                     000006F0 R   text  @  783, 785
+plus                                  00000FC6 R   data  @  125, 501, 516, 553, 566
+print_board                           00000338 R   text  @  371, 378, 383, 394, 470
+print_cells_in_row_loop               00000424 R   text  @  533, 541
+print_cells_in_row_loop_done          00000440 R   text  @  534, 542
+print_final_border                    0000047C R   text  @  557, 563
+print_final_border_done               00000498 R   text  @  558, 564
+print_game_rows_loop                  000003F4 R   text  @  523, 550
+print_game_rows_loop_done             00000468 R   text  @  524, 551
+print_initial_border_loop             000003B4 R   text  @  506, 513
+print_initial_border_loop_done        000003D0 R   text  @  507, 514
+row_is_correct                        000006F4 R   text  @  784, 789
+scan_table_for_neighbors_loop         00000724 R   text  @  814, 847
+scan_table_for_neighbors_loop_done    00000780 R   text  @  815, 849
+sideBar                               00000FCA R   data  @  129, 526, 544
+table_A                               00000894 R   data  @   70, 312, 326, 369, 377, 387, 392
+table_B                               00000C18 R   data  @   75, 314, 349, 376, 381, 388
+traverse_all_cells                    00000588 R   text  @  672, 704
