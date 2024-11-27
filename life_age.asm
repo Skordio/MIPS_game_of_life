@@ -197,6 +197,10 @@ ONE_PLUS_MAX_GENS = 	21
 
 		# now I need to have some way of converting a string into an integer
 		
+		la	$a0, integer_input_buffer
+		jal atoi						# after this $v0 should contain the integer representation
+
+		
 
 		# print the integer back to us
 		li	$v0, PRINT_STR
