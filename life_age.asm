@@ -30,7 +30,7 @@ ONE_PLUS_MAX_GENS = 	21
 		
 	# board prompt and error message ####################################
 	inBoardErr:
-		.ascii	"WARNING: illegal board size, try again: "
+		.ascii	"WARNING: illegal board size - enter an integer from 4 and 30: "
 	boardPrompt:
 		.asciiz	"Enter board size: "
 		
@@ -180,12 +180,12 @@ ONE_PLUS_MAX_GENS = 	21
 		li	$a2, 1			# 1 newline character
 		syscall
 
-
-	_in_board_retry:			
-		# input section
 		li	$v0, PRINT_STR
 		la	$a1, boardPrompt
 		li	$a2, 18
+
+	_in_board_retry:
+		# syscall for printing the prompt
 		syscall
 
 		li	$v0, READ_STR
@@ -197,37 +197,37 @@ ONE_PLUS_MAX_GENS = 	21
 
 		# now I need to have some way of converting a string into an integer
 		
-		la	$a0, integer_input_buffer
+		la	$a0, integer_input_buffer	# load integer_input_buffer into a0 for atoi operation
 		jal atoi						# after this $v0 should contain the integer representation
 
-		
+		add	$t1, $v0, $zero				# now t1 contains integer user entered
 
 		# print the integer back to us
+		# li	$v0, PRINT_STR
+		# li	$a0, 1			# 1 for STDOUT
+		# la	$a1, new_line	# another new line now before prompts
+		# li	$a2, 1			# 1 newline character
+		# syscall
+
+		# li	$v0, PRINT_STR
+		# li	$a0, 1						# 1 for STDOUT
+		# la	$a1, integer_input_buffer	# read from buffer
+		# li	$a2, 16
+		# syscall
+		
+		addi	$t2, $zero, ONE_PLUS_MAX_BOARD_SIZE 	#t2 is 1+max board size now
+		addi	$t3, $zero, MIN_BOARD_SIZE				#t3 is min board size
+		
 		li	$v0, PRINT_STR
-		la	$a1, new_line	# another new line now before prompts
-		li	$a2, 1			# 1 newline character
-		syscall
-
-		li	$v0, PRINT_STR
-		li	$a0, 1						# 1 for STDOUT
-		la	$a1, integer_input_buffer	# read from buffer
-		li	$a2, 16
-		syscall
-
-		# fixed up to here #################################
-
-		j _exit
+		li	$a0, 1
+		la	$a1, inBoardErr
+		li	$a2, 62
 		
-		addi	$t1, $zero, ONE_PLUS_MAX_BOARD_SIZE 	#t1 is 1+max board size now
-		addi	$t2, $zero, MIN_BOARD_SIZE				#t2 is min board size
-		la	$a0, inBoardErr
+		# remember: t1 is user's int, t2 is max, and t3 is min
+		slt	$t0, $t1, $t2					#if user's int is less than max, t0 is 1
+		beq	$t0, $zero, _in_board_retry		#jump to retry if the number is more than max
 		
-		#check it is below max
-		slt	$t0, $v0, $t1	#if it is less, t0 is 1
-		beq	$t0, $zero, _in_board_retry	#jump to retry if the number is more than max
-		
-		slt	$t0, $v0, $t2	#if val is less, t0 is 1 and we must error, if 0 it is ok
-		
+		slt	$t0, $t1, $t3					#if val is less, t0 is 1 and we must error, if 0 it is ok
 		beq	$t0, $zero, _in_board_ok
 		j	_in_board_retry
 
@@ -236,12 +236,26 @@ ONE_PLUS_MAX_GENS = 	21
 		
 		mul	$s1, $s0, $s0	# s1 is now the number of cells on the board
 		
-		#now input for the generations 
-		la	$a0, genPrompt
+		# print genPrompt to user
+		li	$v0, PRINT_STR
+		li	$a0, 1			# 1 for STDOUT
+		la	$a1, genPrompt	
+		li	$a2, 36
 
 	_in_gen_retry:
-		li	$v0, PRINT_STR
+		# syscall for printing the prompt
 		syscall
+		
+		
+		# fixed up to here #################################
+
+		li	$v0, PRINT_STR
+		li	$a0, 1			# 1 for STDOUT
+		la	$a1, new_line	
+		li	$a2, 1
+		syscall
+		j _exit
+
 		li	$v0, READ_INT	# read int, this is the number of generations
 		syscall
 		
@@ -456,18 +470,20 @@ ONE_PLUS_MAX_GENS = 	21
 	#
 	########## end main ##########
 
-
+	###### begin functions #######
+	#
+	#
 	# Name:		live_cell_check
 	#
 	# Description:	Traverse the already recorded live cell locations to see if a
-	#		new one coincides with any, if it does it is not valid
+	#				new one coincides with any, if it does it is not valid
 	#
 	# Arguments:	a0 contains the row number of a potential new cell
-	#		a1 contains the col number of a potential new cell
+	#				a1 contains the col number of a potential new cell
 	#
-	# Returns:	1 in v0 if the input space is valid, 0 if not
+	# Returns:		1 in v0 if the input space is valid, 0 if not
 	#
-	# Destroys:	$t0, $t1, $t2
+	# Destroys:		$t0, $t1, $t2
 	#
 	live_cell_check:
 		la	$t0, live_cells	# now t0 has the address of the live cell "array"
@@ -497,19 +513,18 @@ ONE_PLUS_MAX_GENS = 	21
 		jr 	$ra
 
 
-	# Returns:		none
-	# # Name:		print_table
+	# Name:			print_board
 	#
 	# Description:	print out the given generation
 	#
 	# Arguments:	a0 contains the address of the table
-	#		a1 contains the the generation number
+	#				a1 contains the the generation number
 	#
-	# Returns:	1 in v0 if the input space is valid, 0 if not
+	# Returns:		1 in v0 if the input space is valid, 0 if not
 	
 	print_board:
 		addi	$sp, $sp, -32	# stack stuff except s0 because we will use it
-		sw	$ra, 28($sp)	#				for board size
+		sw	$ra, 28($sp)		# for board size
 		sw	$s7, 24($sp)
 		sw	$s6, 20($sp)
 		sw	$s5, 16($sp)
@@ -621,15 +636,15 @@ ONE_PLUS_MAX_GENS = 	21
 		jr	$ra
 
 
-	# Name:		fill_with_emptyspace
+	# Name:			fill_with_emptyspace
 	#
 	# Description:	fill a table with emptyspace
 	#
 	# Arguments:	a0 contains the address of the table
 	#
-	# Returns:	nothing
+	# Returns:		nothing
 	#
-	# Destroys:	t0, t1, t2
+	# Destroys:		t0, t1, t2
 	#emptySpace is label
 	fill_with_emptyspace:
 		addi	$sp, $sp, -4
@@ -658,8 +673,8 @@ ONE_PLUS_MAX_GENS = 	21
 	# Description:	turn an empty cell into a living one
 	#
 	# Arguments:	a0 contains the address of the table
-	#		a1 contains the row value
-	#		a2 contains the col value
+	#				a1 contains the row value
+	#				a2 contains the col value
 	#		
 	#		#we can use this formula: memory location = (row*boardsize+col)*4
 	#
@@ -685,14 +700,14 @@ ONE_PLUS_MAX_GENS = 	21
 		addi	$sp, $sp, 4
 		jr	$ra
 		
-	# Name:		next_gen
+	# Name:			next_gen
 	#
 	# Description:	does a round of the game of life
 	#
 	# Arguments:	a0 contains the address of the table to generate into
-	#		a1 contains the address of the previous generation
+	#				a1 contains the address of the previous generation
 	#
-	# Returns:	nothing
+	# Returns:		nothing
 	next_gen:
 		addi	$sp, $sp, -28
 		sw	$ra, 24($sp)
@@ -898,3 +913,44 @@ ONE_PLUS_MAX_GENS = 	21
 		lw	$s0,  0($sp)
 		addi	$sp, $sp, 36
 		jr	$ra
+
+
+	# Name:		atoi
+	#
+	# Description:	takes a string buffer which is expected to contain only integers and return the integer representation
+	#
+	# Arguments:	a0 contains the address of the str buffer
+	#
+	# Destroys:		$t0, $t1, $t2, $t3
+	#
+	# Returns:	v0 contains the integer representation
+	atoi:
+		# Assume input string is in $a0
+		li      $v0, 0          # Clear result register, this holds the converted number
+		lb      $t0, 0($a0)     # Load the first byte of the string
+		li      $t1, '-'        # Prepare '-' for comparison
+		bne     $t0, $t1, atoi_skip_neg # If not negative, skip negation setup
+		addi    $a0, $a0, 1     # Increment string pointer to skip '-' character
+		li      $t2, -1         # Flag for negative number
+
+	atoi_skip_neg:
+		li      $t2, 1          # Flag for positive number (default)
+
+	atoi_loop:
+		lb      $t0, 0($a0)     # Load the current character from string
+		beq     $t0, $zero, atoi_done # If it's '\0', we are done
+		li      $t3, '0'        # Load ASCII value of '0'
+		sub     $t0, $t0, $t3   # Convert ASCII to integer ('0' -> 0, '1' -> 1, ..., '9' -> 9)
+		bltz    $t0, atoi_done  # If result is negative, character is not a numeric char
+		li      $t3, 9          # Maximum single digit
+		bgt     $t0, $t3, atoi_done # If result > 9, not a numeric char
+
+		mul     $v0, $v0, 10    # Multiply current result by 10
+		add     $v0, $v0, $t0   # Add new digit to result
+		addi    $a0, $a0, 1     # Move to the next character
+		j       atoi_loop       # Repeat the loop
+
+	atoi_done:
+		mul     $v0, $v0, $t2   # Apply the sign to the result
+		jr      $ra             # Return to caller
+
