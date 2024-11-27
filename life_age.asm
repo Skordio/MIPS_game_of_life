@@ -6,10 +6,10 @@
 # CONSTANTS
 #
 # syscall codes
-PRINT_INT =		1
-PRINT_STR = 	4004
+PRINT_INT = 	1
 READ_INT = 		5
-READ_STRING =	8
+PRINT_STR = 	4004
+READ_STR =		4003
 
 # input check values
 
@@ -18,32 +18,35 @@ MIN_BOARD_SIZE = 	4
 ONE_PLUS_MAX_GENS = 	21
 
 
-.section	.data
-	#game banner
+.data
+	integer_input_buffer:
+		.space 16
+
+	# game banner #######################################################
 	banner_border:
 		.asciiz "*************************************\n"
 	banner_middle:
 		.asciiz "****    Game of Life with Age    ****\n"
 		
-	#board prompt and error message
+	# board prompt and error message ####################################
 	inBoardErr:
 		.ascii	"WARNING: illegal board size, try again: "
 	boardPrompt:
 		.asciiz	"Enter board size: "
 		
-	#generation prompt and error message
+	# generation prompt and error message ###############################
 	inGenErr:
 		.asciiz	"WARNING: illegal number of generations, try again: "
 	genPrompt:
 		.asciiz	"Enter number of generations to run: "
 		
-	#live cell num prompt and error message
+	# live cell num prompt and error message ########################
 	inNumErr:
 		.asciiz	"WARNING: illegal number of live cells, try again: "
 	numPrompt:
 		.asciiz	"Enter number of live cells: "
 		
-	#locations prompt and error message
+	# locations prompt and error message ########################
 	inLocErr:
 		.asciiz	"ERROR: illegal point location\n"
 	locPrompt:
@@ -55,29 +58,24 @@ ONE_PLUS_MAX_GENS = 	21
 	gen_header_end:
 		.asciiz	"    ====\n"
 		
-
-		
-
 	new_line:
 		.asciiz	"\n"
 		
-	#data for the live cell locations:
+	# data for the live cell locations: ########################
 	live_cells:
 		.align 2
 		.space 1800
 		
-	#table A
+	# table A ########################
 	table_A:
 		.align 2
 		.space 900
 
-	#table B
+	# table B ########################
 	table_B:
 		.align 2
 		.space 900
 		
-		# probably need to make stuff for the board here but I 
-		# am not entirely sure how to but we will see lol
 	# asciiz stuff needed for printing board
 	charA:
 		.asciiz "A"
@@ -131,20 +129,16 @@ ONE_PLUS_MAX_GENS = 	21
 	emptySpace:
 		.asciiz " "
 		
-	##############change this name
+	############## change this name
 	ages:	
 		.word	charA, charB, charC, charD, charE, charF, charG, charH, charI, charJ
 		.word	charK, charL, charM, charN, charO, charP, charQ, charR, charS, charT
 		.word	charU
 		
-	########## main ##########
-	#
-	# prompt 
-	#
-.section	.text
+.text
 	.align	2
 
-	.global	__start
+	.globl	__start
 
 	__start:
 		# canonical entry...
@@ -162,37 +156,66 @@ ONE_PLUS_MAX_GENS = 	21
 		sw      $s7, 32($sp)
 
 		#print the banner
-		la	$a0, new_line	# load newline and print it
 		li	$v0, PRINT_STR
+		li	$a0, 1			# 1 in a1 for STDOUT
+		la	$a1, new_line	# load newline and print it
+		li	$a2, 1			# 1 newline character
 		syscall
 		
-		la	$a0, banner_border	# load top of banner and print it
 		li	$v0, PRINT_STR
+		la	$a1, banner_border	# load top of banner and print it
+		li	$a2, 38				# banner is 38 characters wide
 		syscall
 
-		la	$a0, banner_middle	# load the middle of banner and print it
 		li	$v0, PRINT_STR
+		la	$a1, banner_middle	# load the middle of banner and print it
 		syscall
 
-		la	$a0, banner_border	# load the bottom of the banner and print it
 		li	$v0, PRINT_STR
+		la	$a1, banner_border	# load the bottom of the banner and print it
 		syscall
 		
-		la	$a0, new_line	# another new line now before prompts
 		li	$v0, PRINT_STR
+		la	$a1, new_line	# another new line now before prompts
+		li	$a2, 1			# 1 newline character
 		syscall
 
+
+	_in_board_retry:			
 		# input section
-		la	$a0, boardPrompt
-
-	_in_board_retry:	
 		li	$v0, PRINT_STR
+		la	$a1, boardPrompt
+		li	$a2, 18
 		syscall
-		li	$v0, READ_INT	# read integer
-		syscall			# $v0 is users board size
+
+		li	$v0, READ_STR
+		li	$a0, 0						# 0 for STDIN
+		la	$a1, integer_input_buffer	# read into address of integer input buffer
+		li	$a2, 16						# length of buffer is 16
+		syscall							# users board size is in integer_input_buffer as string
+
+
+		
+
+		# print the integer back to us
+		li	$v0, PRINT_STR
+		la	$a1, new_line	# another new line now before prompts
+		li	$a2, 1			# 1 newline character
+		syscall
+
+		li	$v0, PRINT_STR
+		li	$a0, 1						# 1 for STDOUT
+		la	$a1, integer_input_buffer	# read from buffer
+		li	$a2, 16
+		syscall
+
+		# fixed up to here #################################
+		# now I need to have some way of converting a string into an integer
+
+		j _exit
 		
 		addi	$t1, $zero, ONE_PLUS_MAX_BOARD_SIZE 	#t1 is 1+max board size now
-		addi	$t2, $zero, MIN_BOARD_SIZE		#t2 is min board size
+		addi	$t2, $zero, MIN_BOARD_SIZE				#t2 is min board size
 		la	$a0, inBoardErr
 		
 		#check it is below max
@@ -310,7 +333,7 @@ ONE_PLUS_MAX_GENS = 	21
 	enter_new_live_cell_done:
 		move	$s4, $zero	#not using s4 for anything anymore, it will be used next
 
-	########## input done ####################
+		########## input done ####################
 		
 		# put empty space into the tables
 		
@@ -344,7 +367,7 @@ ONE_PLUS_MAX_GENS = 	21
 
 	done_initializing_cells_A:
 
-	#now take the cell locations and put new cells there
+		#now take the cell locations and put new cells there
 		# tools: 	live_cells 
 		#		$s3 is num of alive cells
 		
@@ -410,19 +433,22 @@ ONE_PLUS_MAX_GENS = 	21
 	_exit:
 		# canonical exit...
 		#
-		li	$v0, 0		# nominal exit
+		li		$v0, 4001		# nominal exit
+		li		$a0, 0			# 0 for no error
 		
-			lw      $s7, 32($sp)	# clean up stack
-			lw      $s6, 28($sp)
-			lw      $s5, 24($sp)
-			lw      $s4, 20($sp)
-			lw      $s3, 16($sp)
-			lw      $s2, 12($sp)
-			lw      $s1, 8($sp)
-			lw      $s0, 4($sp)
-			lw      $ra, 0($sp)
-			addi    $sp, $sp, 36
-		jr	$ra
+		lw      $s7, 32($sp)	# clean up stack
+		lw      $s6, 28($sp)
+		lw      $s5, 24($sp)
+		lw      $s4, 20($sp)
+		lw      $s3, 16($sp)
+		lw      $s2, 12($sp)
+		lw      $s1, 8($sp)
+		lw      $s0, 4($sp)
+		lw      $ra, 0($sp)
+		addi    $sp, $sp, 36
+
+		# jr	$ra
+		syscall
 	#
 	########## end main ##########
 
@@ -476,7 +502,7 @@ ONE_PLUS_MAX_GENS = 	21
 	#		a1 contains the the generation number
 	#
 	# Returns:	1 in v0 if the input space is valid, 0 if not
-	#
+	
 	print_board:
 		addi	$sp, $sp, -32	# stack stuff except s0 because we will use it
 		sw	$ra, 28($sp)	#				for board size
