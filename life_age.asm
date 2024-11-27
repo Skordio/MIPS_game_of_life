@@ -195,6 +195,7 @@ ONE_PLUS_MAX_GENS = 	21
 		syscall							# users board size is in integer_input_buffer as string
 
 
+		# now I need to have some way of converting a string into an integer
 		
 
 		# print the integer back to us
@@ -210,7 +211,6 @@ ONE_PLUS_MAX_GENS = 	21
 		syscall
 
 		# fixed up to here #################################
-		# now I need to have some way of converting a string into an integer
 
 		j _exit
 		
