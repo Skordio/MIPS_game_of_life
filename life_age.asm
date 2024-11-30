@@ -1,19 +1,16 @@
 # File:		life_age.asm
 # Author:	Steven Wells
 # Description:	This program simulates Conway's game life
-#
-#
+
+
 # CONSTANTS
-#
+
 # syscall codes
-PRINT_INT = 	1
-READ_INT = 		5
 PRINT_STR = 	4004
 READ_STR =		4003
 
 # input check values
-
-ONE_PLUS_MAX_BOARD_SIZE =	31
+MAX_BOARD_SIZE =	30
 MIN_BOARD_SIZE = 	4
 ONE_PLUS_MAX_GENS = 	21
 
@@ -30,7 +27,7 @@ ONE_PLUS_MAX_GENS = 	21
 		
 	# board prompt and error message ####################################
 	inBoardErr:
-		.ascii	"WARNING: illegal board size - enter an integer from 4 and 30: "
+		.ascii	"WARNING: illegal board size - enter an integer in the range [4, 30]: "
 	boardPrompt:
 		.asciiz	"Enter board size: "
 		
@@ -141,8 +138,6 @@ ONE_PLUS_MAX_GENS = 	21
 
 	__start:
 		# canonical entry...
-		#     save $s0 since we will be using it
-		#
 		addi    $sp, $sp, -36  # space for the s registers
 		sw      $ra, 0($sp)    # store the ra on the stack
 		sw      $s0, 4($sp)
@@ -185,7 +180,7 @@ ONE_PLUS_MAX_GENS = 	21
 		la	$a1, boardPrompt
 		li	$a2, 18
 
-	_in_board_retry:
+	_in_board_size_loop:
 		syscall
 
 		# Read input from user up to 16 characters
@@ -201,30 +196,30 @@ ONE_PLUS_MAX_GENS = 	21
 
 		add	$t1, $v0, $zero				# now t1 contains integer representation
 		
-		addi	$t2, $zero, ONE_PLUS_MAX_BOARD_SIZE 	# t2 is 1+max board size now
-		addi	$t3, $zero, MIN_BOARD_SIZE				# t3 is min board size
+		addi	$t2, $zero, MAX_BOARD_SIZE 	# t2 is max board size now
+		addi	$t3, $zero, MIN_BOARD_SIZE	# t3 is min board size
 		
 		# Setup to write error message to user if bad input
 		li	$v0, PRINT_STR
 		li	$a0, 1
 		la	$a1, inBoardErr
-		li	$a2, 62
+		li	$a2, 69
 		
 		# remember: t1 is user's int, t2 is max, and t3 is min
 
-		slt	$t0, $t1, $t2					# if user's int is less than max, t0 is 1
-		beq	$t0, $zero, _in_board_retry		# jump to retry if the number is more than max
+		slt	$t0, $t2, $t1						# if max is less than input, t0 is 1
+		bne	$t0, $zero, _in_board_size_loop		# jump to retry if t0 is 1
 		
-		slt	$t0, $t1, $t3					# if val is less, t0 is 1 and we must error, if 0 it is ok
-		beq	$t0, $zero, _in_board_ok
-		j	_in_board_retry
+		slt	$t0, $t1, $t3						# if input is less than min, t0 is 1
+		beq	$t0, $zero, _board_size_ok
+		j	_in_board_size_loop
 
-	_in_board_ok:	
+	_board_size_ok:	
 		move	$s0, $v0	# $s0 is now the user's valid input for the board size
 		
 		mul	$s1, $s0, $s0	# s1 is now the number of cells on the board
 		
-		# print genPrompt to user
+		# print generation count input prompt to user
 		li	$v0, PRINT_STR
 		li	$a0, 1
 		la	$a1, genPrompt
@@ -233,7 +228,6 @@ ONE_PLUS_MAX_GENS = 	21
 	_in_gen_retry:
 		# syscall for printing the prompt
 		syscall
-		
 		
 		## fixed up to here #################################
 
@@ -246,7 +240,7 @@ ONE_PLUS_MAX_GENS = 	21
 
 		## fixed up to here #################################
 
-		li	$v0, READ_INT	# read int, this is the number of generations
+		#li	$v0, READ_INT	# read int, this is the number of generations
 		syscall
 		
 		addi	$t1, $zero, ONE_PLUS_MAX_GENS 	#t1 is 1+max board size now
@@ -270,7 +264,7 @@ ONE_PLUS_MAX_GENS = 	21
 	_in_num_retry:
 		li	$v0, PRINT_STR
 		syscall
-		li	$v0, READ_INT	# read int, this is the number of live cells
+		#li	$v0, READ_INT	# read int, this is the number of live cells
 		syscall
 		
 		add	$t1, $zero, $s1 	# t1 is max num of cells now
@@ -306,11 +300,11 @@ ONE_PLUS_MAX_GENS = 	21
 
 	enter_new_live_cell:
 		beq	$s4, $s3, enter_new_live_cell_done
-		li	$v0, READ_INT	# read int, the row for a potential new live cell
+		#li	$v0, READ_INT	# read int, the row for a potential new live cell
 		syscall
 		move	$t3, $v0	# now t3 is the row for a potential new live cell
 		
-		li	$v0, READ_INT	# read int, the row for a potential new live cell
+		#li	$v0, READ_INT	# read int, the row for a potential new live cell
 		syscall
 		move	$t4, $v0	# now t4 is the col for a potential new live cell
 		
@@ -534,7 +528,7 @@ ONE_PLUS_MAX_GENS = 	21
 		la	$a0, gen_header
 		syscall			# prints the start of the gen header
 		
-		li	$v0, PRINT_INT
+		#li	$v0, PRINT_INT
 		move	$a0, $s2	# seperated to print the number
 		syscall
 		
