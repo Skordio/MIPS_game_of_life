@@ -129,7 +129,6 @@ ONE_PLUS_MAX_GENS = 	21
 	emptySpace:
 		.asciiz " "
 		
-	############## change this name
 	ages:	
 		.word	charA, charB, charC, charD, charE, charF, charG, charH, charI, charJ
 		.word	charK, charL, charM, charN, charO, charP, charQ, charR, charS, charT
@@ -155,79 +154,68 @@ ONE_PLUS_MAX_GENS = 	21
 		sw      $s6, 28($sp)
 		sw      $s7, 32($sp)
 
-		#print the banner
+		# Move to the next line in the terminal
 		li	$v0, PRINT_STR
 		li	$a0, 1			# 1 in a1 for STDOUT
-		la	$a1, new_line	# load newline and print it
-		li	$a2, 1			# 1 newline character
+		la	$a1, new_line	# load addr of newline string
+		li	$a2, 1			# newline is 1 length
 		syscall
 		
+		# Print game banner
 		li	$v0, PRINT_STR
-		la	$a1, banner_border	# load top of banner and print it
+		la	$a1, banner_border	
 		li	$a2, 38				# banner is 38 characters wide
 		syscall
 
 		li	$v0, PRINT_STR
-		la	$a1, banner_middle	# load the middle of banner and print it
+		la	$a1, banner_middle	
 		syscall
 
 		li	$v0, PRINT_STR
-		la	$a1, banner_border	# load the bottom of the banner and print it
+		la	$a1, banner_border
 		syscall
 		
 		li	$v0, PRINT_STR
-		la	$a1, new_line	# another new line now before prompts
-		li	$a2, 1			# 1 newline character
+		la	$a1, new_line	
+		li	$a2, 1			
 		syscall
 
+		# Setup syscall for board size input prompt
 		li	$v0, PRINT_STR
 		la	$a1, boardPrompt
 		li	$a2, 18
 
 	_in_board_retry:
-		# syscall for printing the prompt
 		syscall
 
+		# Read input from user up to 16 characters
 		li	$v0, READ_STR
 		li	$a0, 0						# 0 for STDIN
-		la	$a1, integer_input_buffer	# read into address of integer input buffer
-		li	$a2, 16						# length of buffer is 16
-		syscall							# users board size is in integer_input_buffer as string
-
-
-		# now I need to have some way of converting a string into an integer
+		la	$a1, integer_input_buffer
+		li	$a2, 16
+		syscall
 		
-		la	$a0, integer_input_buffer	# load integer_input_buffer into a0 for atoi operation
+		# Convert input string into integer
+		la	$a0, integer_input_buffer
 		jal atoi						# after this $v0 should contain the integer representation
 
-		add	$t1, $v0, $zero				# now t1 contains integer user entered
-
-		# print the integer back to us
-		# li	$v0, PRINT_STR
-		# li	$a0, 1			# 1 for STDOUT
-		# la	$a1, new_line	# another new line now before prompts
-		# li	$a2, 1			# 1 newline character
-		# syscall
-
-		# li	$v0, PRINT_STR
-		# li	$a0, 1						# 1 for STDOUT
-		# la	$a1, integer_input_buffer	# read from buffer
-		# li	$a2, 16
-		# syscall
+		add	$t1, $v0, $zero				# now t1 contains integer representation
 		
-		addi	$t2, $zero, ONE_PLUS_MAX_BOARD_SIZE 	#t2 is 1+max board size now
-		addi	$t3, $zero, MIN_BOARD_SIZE				#t3 is min board size
+		addi	$t2, $zero, ONE_PLUS_MAX_BOARD_SIZE 	# t2 is 1+max board size now
+		addi	$t3, $zero, MIN_BOARD_SIZE				# t3 is min board size
 		
+		# Setup to write error message to user if bad input
 		li	$v0, PRINT_STR
 		li	$a0, 1
 		la	$a1, inBoardErr
 		li	$a2, 62
 		
 		# remember: t1 is user's int, t2 is max, and t3 is min
-		slt	$t0, $t1, $t2					#if user's int is less than max, t0 is 1
-		beq	$t0, $zero, _in_board_retry		#jump to retry if the number is more than max
+
+		slt	$t0, $t1, $t2					# if user's int is less than max, t0 is 1
+		beq	$t0, $zero, _in_board_retry		# jump to retry if the number is more than max
 		
-		slt	$t0, $t1, $t3					#if val is less, t0 is 1 and we must error, if 0 it is ok
+		slt	$t0, $t1, $t3					# if val is less, t0 is 1 and we must error, if 0 it is ok
 		beq	$t0, $zero, _in_board_ok
 		j	_in_board_retry
 
@@ -238,8 +226,8 @@ ONE_PLUS_MAX_GENS = 	21
 		
 		# print genPrompt to user
 		li	$v0, PRINT_STR
-		li	$a0, 1			# 1 for STDOUT
-		la	$a1, genPrompt	
+		li	$a0, 1
+		la	$a1, genPrompt
 		li	$a2, 36
 
 	_in_gen_retry:
@@ -247,14 +235,16 @@ ONE_PLUS_MAX_GENS = 	21
 		syscall
 		
 		
-		# fixed up to here #################################
+		## fixed up to here #################################
 
 		li	$v0, PRINT_STR
-		li	$a0, 1			# 1 for STDOUT
-		la	$a1, new_line	
+		li	$a0, 1
+		la	$a1, new_line
 		li	$a2, 1
 		syscall
 		j _exit
+
+		## fixed up to here #################################
 
 		li	$v0, READ_INT	# read int, this is the number of generations
 		syscall
