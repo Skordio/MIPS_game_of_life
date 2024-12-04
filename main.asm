@@ -9,7 +9,7 @@
 PRINT_STR 	= 4004
 READ_STR	= 4003
 
-# Linux stuff
+# Linux streams
 STDIN 	= 0
 STDOUT 	= 1
 
@@ -37,24 +37,23 @@ ONE_PLUS_MAX_GENS 	= 21
 	genPrompt: 		.asciiz	"Enter number of generations to run: "
 	genPromptLen: 	.word 	36
 		
-	# live cell num prompt and error message ########################
 	inNumErr:		.asciiz	"WARNING: illegal number of live cells, try again: "
-	numPrompt:		.asciiz	"Enter number of live cells: "
+	inNumErrLen:	.word	50
+	inNumPrompt:	.asciiz	"Enter number of live cells: "
+	inNumPromptLen:	.word	28
 		
 	# locations prompt and error message ########################
-	inLocErr:
-		.asciiz	"ERROR: illegal point location\n"
-	locPrompt:
-		.asciiz	"Start entering locations\n"
+	inLocErr:		.asciiz	"ERROR: illegal point location\n"
+	inLocErrLen:	.word	30
+	inLocPrompt:	.asciiz	"Start entering locations\n"
+	inLocPromptLen:	.word	25
 		
-	gen_header:
-		.asciiz	"====    GENERATION "
+	genHeaderStart:			.asciiz	"====    GENERATION "
+	genHeaderStartLen:		.word	19
+	genHeaderEnd:			.asciiz	"    ====\n"
+	genHeaderEndLen:		.word	9
 		
-	gen_header_end:
-		.asciiz	"    ====\n"
-		
-	new_line:
-		.asciiz	"\n"
+	newLine:	.asciiz	"\n"
 		
 	# data for the live cell locations: ########################
 	live_cells:
@@ -125,7 +124,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		# Move to the next line in the terminal
 		li	$v0, PRINT_STR
 		li	$a0, STDOUT
-		la	$a1, new_line
+		la	$a1, newLine
 		li	$a2, 1
 		syscall
 		
@@ -144,7 +143,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		syscall
 		
 		li	$v0, PRINT_STR
-		la	$a1, new_line	
+		la	$a1, newLine	
 		li	$a2, 1			
 		syscall
 
@@ -206,7 +205,7 @@ ONE_PLUS_MAX_GENS 	= 21
 
 		li	$v0, PRINT_STR
 		li	$a0, STDOUT
-		la	$a1, new_line
+		la	$a1, newLine
 		li	$a2, 1
 		syscall
 		j _exit
@@ -232,7 +231,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		move	$s2, $v0	# $s2 is now the number of generations we will run for
 		
 		#now input for the num of live cells
-		la	$a0, numPrompt
+		la	$a0, inNumPrompt
 
 	_in_num_retry:
 		li	$v0, PRINT_STR
@@ -257,7 +256,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		move	$s3, $v0	# $s3 is now the number of alive cells for the program to have
 		
 		# now for the live cell locations
-		la	$a0, locPrompt
+		la	$a0, inLocPrompt
 		li	$v0, PRINT_STR
 		syscall
 
@@ -495,11 +494,11 @@ ONE_PLUS_MAX_GENS 	= 21
 		move	$s2, $a1	# s2 is generation num
 		
 		li	$v0, PRINT_STR	#generation header stuff
-		la	$a0, new_line
+		la	$a0, newLine
 		syscall			# prints a new line
 		
 		li	$v0, PRINT_STR
-		la	$a0, gen_header
+		la	$a0, genHeaderStart
 		syscall			# prints the start of the gen header
 		
 		#li	$v0, PRINT_INT
@@ -507,7 +506,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		syscall
 		
 		li	$v0, PRINT_STR
-		la	$a0, gen_header_end
+		la	$a0, genHeaderEnd
 		syscall			# prints the end of the gen header
 		
 		li	$v0, PRINT_STR
@@ -529,7 +528,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a0, plus
 		syscall
 		li	$v0, PRINT_STR
-		la	$a0, new_line
+		la	$a0, newLine
 		syscall
 		
 		move	$t0, $zero	# t0 will be the counter for the row num
@@ -557,7 +556,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a0, sideBar
 		syscall			# print the sidebar now
 		li	$v0, PRINT_STR
-		la	$a0, new_line
+		la	$a0, newLine
 		syscall			# and a new line, to go onto the next row
 		addi	$t0, $t0, 1
 		j	print_game_rows_loop
@@ -579,7 +578,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a0, plus
 		syscall
 		li	$v0, PRINT_STR
-		la	$a0, new_line
+		la	$a0, newLine
 		syscall
 
 		lw	$ra, 28($sp)	#stack stuff
