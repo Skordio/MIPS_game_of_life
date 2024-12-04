@@ -14,14 +14,17 @@ STDIN 	= 0
 STDOUT 	= 1
 
 # input check values
+DEFAULT_BOARD_SIZE	= 10
 MAX_BOARD_SIZE 		= 30
 MIN_BOARD_SIZE 		= 4
-ONE_PLUS_MAX_GENS 	= 21
+
+DEFAULT_GENS		= 10
+MAX_GENS 			= 20
 
 
 .data
-	integerInputBuffer:		.space 16
-	integerInputBufferLen:	.word 16
+	integerInputBuffer:		.space 	16
+	integerInputBufferLen:	.word 	16
 
 	bannerBorder: 	.asciiz "*************************************\n"
 	bannerMiddle: 	.asciiz "****    Game of Life with Age    ****\n"
@@ -29,13 +32,19 @@ ONE_PLUS_MAX_GENS 	= 21
 		
 	inBoardSizeErr:			.ascii	"WARNING: illegal board size - enter an integer in the range [4, 30]: "
 	inBoardSizeErrLen:		.word	69
-	inBoardSizePrompt:		.asciiz	"Enter board size: "
-	inBoardSizePromptLen:	.word	18
+	inBoardSizePrompt:		.asciiz	"Enter an integer in the range [4, 30] for the board size (or leave blank for default): "
+	inBoardSizePromptLen:	.word	87
+
+	boardSizeReadout:			.asciiz	"------ Board Size: "
+	boardSizeReadoutLen:		.word	19 
+
+	boardSizeReadoutBuffer:		.space 	12
+	boardSizeReadoutBufferLen:	.word	12
 		
 	inGenErr: 		.asciiz	"WARNING: illegal number of generations, try again: "
 	inGenErrLen:	.word	51
-	genPrompt: 		.asciiz	"Enter number of generations to run: "
-	genPromptLen: 	.word 	36
+	genPrompt: 		.asciiz	"Enter an integer in the range [1, 20] for number of generations to run (or leave blank for default): "
+	genPromptLen: 	.word 	101
 		
 	inNumErr:		.asciiz	"WARNING: illegal number of live cells, try again: "
 	inNumErrLen:	.word	50
@@ -166,7 +175,9 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a0, integerInputBuffer
 		jal atoi						# after this $v0 should contain the integer representation
 
-		add	$t1, $v0, $zero				# now t1 contains integer representation
+		add	$s0, $v0, $zero				# now s0 contains integer representation
+
+		beq $s0, $zero, _use_default_board_size		# if user entered nothing, use default size
 		
 		addi	$t2, $zero, MAX_BOARD_SIZE 	# t2 is max board size now
 		addi	$t3, $zero, MIN_BOARD_SIZE	# t3 is min board size
@@ -177,19 +188,47 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a1, inBoardSizeErr
 		lw	$a2, inBoardSizeErrLen
 		
-		# remember: t1 is user's int, t2 is max, and t3 is min
+		# remember: s0 is user's int, t2 is max, and t3 is min
 
-		slt	$t0, $t2, $t1						# if max is less than input, t0 is 1
+		slt	$t0, $t2, $s0						# if max is less than input, t0 is 1
 		bne	$t0, $zero, _in_board_size_loop		# jump to retry if t0 is 1
 		
-		slt	$t0, $t1, $t3						# if input is less than min, t0 is 1
+		slt	$t0, $s0, $t3						# if input is less than min, t0 is 1
 		beq	$t0, $zero, _board_size_ok
 		j	_in_board_size_loop
 
+	_use_default_board_size:
+		# Write default board size to terminal as if user did
+		li	$s0, DEFAULT_BOARD_SIZE
+
 	_board_size_ok:	
-		move	$s0, $v0	# $s0 is now the user's valid input for the board size
-		
-		mul		$s1, $s0, $s0	# s1 is now the number of cells on the board
+		# Print board size readout intro
+		li 	$v0, PRINT_STR
+		li	$a0, STDOUT
+		la	$a1, boardSizeReadout
+		lw	$a2, boardSizeReadoutLen
+		syscall
+
+		# Convert whatever int is the board size into string buffer to print back to user
+		move 	$a0, $s0
+		la 		$a1, boardSizeReadoutBuffer
+		jal		int_to_string		# now boardSizeReadoutBuffer contains str representation of default board size
+
+		# Read out board size selection
+		li 	$v0, PRINT_STR
+		li	$a0, STDOUT
+		lw	$a2, boardSizeReadoutBufferLen
+		syscall
+
+		# Also print new line before doing generation count prompt
+		li 	$v0, PRINT_STR
+		li	$a0, STDOUT
+		la	$a1, newLine
+		li	$a2, 1
+		syscall
+
+		# Put the number of cells on the board into s1
+		mul		$s1, $s0, $s0	
 		
 		# print generation count input prompt to user
 		li	$v0, PRINT_STR
@@ -215,7 +254,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		#li	$v0, READ_INT	# read int, this is the number of generations
 		syscall
 		
-		addi	$t1, $zero, ONE_PLUS_MAX_GENS 	#t1 is 1+max board size now
+		addi	$t1, $zero, MAX_GENS 	#t1 is 1+max board size now
 		la		$a0, inGenErr
 		
 		#check it is below max
