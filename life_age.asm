@@ -190,7 +190,7 @@ ONE_PLUS_MAX_GENS 	= 21
 	_board_size_ok:	
 		move	$s0, $v0	# $s0 is now the user's valid input for the board size
 		
-		mul	$s1, $s0, $s0	# s1 is now the number of cells on the board
+		mul		$s1, $s0, $s0	# s1 is now the number of cells on the board
 		
 		# print generation count input prompt to user
 		li	$v0, PRINT_STR
@@ -198,7 +198,7 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a1, genPrompt
 		lw	$a2, genPromptLen
 
-	_in_gen_retry:
+	_in_gen_loop:
 		# syscall for printing the prompt
 		syscall
 		
@@ -217,16 +217,16 @@ ONE_PLUS_MAX_GENS 	= 21
 		syscall
 		
 		addi	$t1, $zero, ONE_PLUS_MAX_GENS 	#t1 is 1+max board size now
-		la	$a0, inGenErr
+		la		$a0, inGenErr
 		
 		#check it is below max
 		slt	$t0, $v0, $t1	#if it is less, t0 is 1
-		beq	$t0, $zero, _in_gen_retry	#jump to retry if the number is more than max
+		beq	$t0, $zero, _in_gen_loop	#jump to retry if the number is more than max
 		
 		slt	$t0, $v0, $zero	#if val is less, t0 is 1 and we must error, if 0 it is ok
 		
 		beq	$t0, $zero, _in_gen_ok
-		j	_in_gen_retry
+		j	_in_gen_loop
 
 	_in_gen_ok:	
 		move	$s2, $v0	# $s2 is now the number of generations we will run for
@@ -240,9 +240,9 @@ ONE_PLUS_MAX_GENS 	= 21
 		#li	$v0, READ_INT	# read int, this is the number of live cells
 		syscall
 		
-		add	$t1, $zero, $s1 	# t1 is max num of cells now
+		add		$t1, $zero, $s1 	# t1 is max num of cells now
 		addi	$t1, $t1, 1		# and now it is 1 more for ease of use
-		la	$a0, inNumErr
+		la		$a0, inNumErr
 		
 		#check it is below max
 		slt	$t0, $v0, $t1	#if it is less, t0 is 1
@@ -260,7 +260,8 @@ ONE_PLUS_MAX_GENS 	= 21
 		la	$a0, locPrompt
 		li	$v0, PRINT_STR
 		syscall
-		la	$t6, live_cells	# now t6 has the address of the live cell "array"
+
+		la		$t6, live_cells	# now t6 has the address of the live cell "array"
 		move	$s4, $zero	# s4 will be the amount of live cells we have already entered
 		
 		j enter_new_live_cell
@@ -776,38 +777,38 @@ ONE_PLUS_MAX_GENS 	= 21
 		
 		
 		
-		sub	$t0, $a1, $a0	#subtract offset loc from tabl addr to get the offset
-		div	$t0, $t0, 4	#divide by 4 to get the current index
-		div	$t0, $s0	#and divide this again to put the 
+		sub		$t0, $a1, $a0	#subtract offset loc from tabl addr to get the offset
+		div		$t0, $t0, 4	#divide by 4 to get the current index
+		div		$t0, $s0	#and divide this again to put the 
 		mflo	$s2		#row here and the
 		mfhi	$s3		#col here
 		
 		addi	$t0, $s2, 1	#t0 is the row+1
-		div	$t0, $s0	#row/board size
+		div		$t0, $s0	#row/board size
 		mfhi	$t2		#t2 is (row+1)%boardsize
 					# so it is 0 if max row, and just 1+row otherwise
 		
 		addi	$t0, $s2, -1	#t0 is the row-1
-		div	$t0, $s0		
+		div		$t0, $s0		
 		mfhi	$t3		#t3 is row-1%boardsize
 		
-		slt	$t1, $t3, $zero			#if t3 is -1 then we are at the bottom row
-		bne	$t1, $zero, on_the_bottom_row	#if t1=1, row_negative
-		j	row_is_correct
+		slt		$t1, $t3, $zero			#if t3 is -1 then we are at the bottom row
+		bne		$t1, $zero, on_the_bottom_row	#if t1=1, row_negative
+		j		row_is_correct
 	on_the_bottom_row:
 		addi	$t3, $s0, -1		#if we are at the bottom, t3 is max col
 		
 		
 	row_is_correct:
 		addi	$t0, $s3, 1		#t0 is col + 1
-		div	$t0, $s0		#mfhi is col + 1%boardsize
+		div		$t0, $s0		#mfhi is col + 1%boardsize
 		mfhi	$t4			#t4 is col+1%boardsize
 		addi	$t0, $s3, -1		#t0 is col - 1
-		div	$t0, $s0		#mfhi is col - 1%boardsize
+		div		$t0, $s0		#mfhi is col - 1%boardsize
 		mfhi	$t5			#t5 is col - 1%boardsize
-		slt	$t1, $t5, $zero		#t1 is 1 if col - 1%boardsize is negative
-		bne	$t1, $zero, on_the_bottom_col
-		j	col_is_correct
+		slt		$t1, $t5, $zero		#t1 is 1 if col - 1%boardsize is negative
+		bne		$t1, $zero, on_the_bottom_col
+		j		col_is_correct
 	on_the_bottom_col:
 		addi	$t5, $s0, -1		# if t5 is at the bottom it is max
 	col_is_correct:
@@ -824,49 +825,49 @@ ONE_PLUS_MAX_GENS 	= 21
 		move	$v0, $zero	#v0 is the counter for all the neighbors
 		move	$s4, $zero	#s4 = loop counter
 	scan_table_for_neighbors_loop:
-		beq	$s4, $s1, scan_table_for_neighbors_loop_done	#end loop if counter too far
-		div	$s4, $s0							
+		beq		$s4, $s1, scan_table_for_neighbors_loop_done	#end loop if counter too far
+		div		$s4, $s0							
 		mflo	$t0				#t0 is now the row num
 		mfhi	$t1				#t1 is now the col num
 		
 		#check if row is the right row for the cell to be a neighbor
-		beq	$t0, $t2, col_check_wraparound	# if the current loop row num matches t2
+		beq		$t0, $t2, col_check_wraparound	# if the current loop row num matches t2
 							# then we are in the right row but on the
-		beq	$t0, $t3, col_check_wraparound	# top or bottom row
-		beq	$t0, $s2, col_check		# if it is s2 then we are in the middle
+		beq		$t0, $t3, col_check_wraparound	# top or bottom row
+		beq		$t0, $s2, col_check		# if it is s2 then we are in the middle
 		
 	#check this when the col # is at the top or bottom
 	col_check_wraparound:
-		beq	$t1, $t4, cell_is_neighbor
-		beq	$t1, $t5, cell_is_neighbor
-		beq	$t1, $s3, cell_is_neighbor
-		j	go_to_next_neighbor
+		beq		$t1, $t4, cell_is_neighbor
+		beq		$t1, $t5, cell_is_neighbor
+		beq		$t1, $s3, cell_is_neighbor
+		j		go_to_next_neighbor
 	#check this when the col # is in the middle
 	col_check:
-		beq	$t1, $t4, cell_is_neighbor
-		beq	$t1, $t5, cell_is_neighbor
-		j	go_to_next_neighbor
+		beq		$t1, $t4, cell_is_neighbor
+		beq		$t1, $t5, cell_is_neighbor
+		j		go_to_next_neighbor
 	cell_is_neighbor:
-		lw	$t6, 0($a0)		#if it is a neighbor then load the current cell into t6
-		la	$t7, emptySpace		#and check it against emptySpace
-		bne	$t6, $t7, neighbor_is_alive	#if they aren't equal it's a live one
-		j	go_to_next_neighbor
+		lw		$t6, 0($a0)		#if it is a neighbor then load the current cell into t6
+		la		$t7, emptySpace		#and check it against emptySpace
+		bne		$t6, $t7, neighbor_is_alive	#if they aren't equal it's a live one
+		j		go_to_next_neighbor
 	neighbor_is_alive:
 		addi	$v0, $v0, 1
 	go_to_next_neighbor:
 		addi	$a0, $a0, 4	#increment
 		addi	$s4, $s4, 1
-		j	scan_table_for_neighbors_loop
+		j		scan_table_for_neighbors_loop
 		
 	scan_table_for_neighbors_loop_done:
-		lw	$ra, 32($sp)
-		lw	$s7, 28($sp)
-		lw	$s6, 24($sp)
-		lw	$s5, 20($sp)
-		lw	$s4, 16($sp)
-		lw	$s3, 12($sp)
-		lw	$s2,  8($sp)
-		lw	$s1,  4($sp)
-		lw	$s0,  0($sp)
+		lw		$ra, 32($sp)
+		lw		$s7, 28($sp)
+		lw		$s6, 24($sp)
+		lw		$s5, 20($sp)
+		lw		$s4, 16($sp)
+		lw		$s3, 12($sp)
+		lw		$s2,  8($sp)
+		lw		$s1,  4($sp)
+		lw		$s0,  0($sp)
 		addi	$sp, $sp, 36
 		jr	$ra
