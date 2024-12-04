@@ -32,11 +32,33 @@ mips-linux-gnu-as file.asm -o file.o
 then use gcc to compile it (and use a few arguments so that the binary doesn't do runtime linking and we don't get errors):
 
 ```bash
-mips-linux-gnu-gcc file.o -nostdlib -static
+mips-linux-gnu-gcc file.o libfile.o -nostdlib -static
 ```
 
 this will create an a.out executable which can be run using qemu-mips:
 
 ```bash
 qemu-mips ./a.out
+```
+
+### Compiling with makefile
+
+I added a makefile to the project because I started moving functions into separate files. 
+
+You need to have CMake installed to use it:
+
+```bash
+sudo apt install cmake
+```
+
+and then you can compile by running make at the root of the repo:
+
+```bash
+make
+```
+
+or you can use the 'run' option to automatically compile and run the code, and also automatically clean up binaries after done running:
+
+```bash
+make clean
 ```
