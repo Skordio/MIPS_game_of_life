@@ -28,4 +28,7 @@ $(EXE): $(MAIN_OBJ) $(LIB_OBJS)
 clean:
 	rm -f $(MAIN_OBJ) $(LIB_OBJS) $(EXE)
 
+run:
+	make; qemu-mips $(EXE); make clean
+
 .PHONY: all clean
