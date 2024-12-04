@@ -6,42 +6,40 @@
 # CONSTANTS
 
 # syscall codes
-PRINT_STR = 	4004
-READ_STR =		4003
+PRINT_STR 	= 4004
+READ_STR	= 4003
+
+# Linux stuff
+STDIN 	= 0
+STDOUT 	= 1
 
 # input check values
-MAX_BOARD_SIZE =	30
-MIN_BOARD_SIZE = 	4
-ONE_PLUS_MAX_GENS = 	21
+MAX_BOARD_SIZE 		= 30
+MIN_BOARD_SIZE 		= 4
+ONE_PLUS_MAX_GENS 	= 21
 
 
 .data
-	integer_input_buffer:
-		.space 16
+	integerInputBuffer:		.space 16
+	integerInputBufferLen:	.word 16
 
-	# game banner #######################################################
-	banner_border:
-		.asciiz "*************************************\n"
-	banner_middle:
-		.asciiz "****    Game of Life with Age    ****\n"
+	bannerBorder: 	.asciiz "*************************************\n"
+	bannerMiddle: 	.asciiz "****    Game of Life with Age    ****\n"
+	bannerLen:		.word 	38
 		
-	# board prompt and error message ####################################
-	inBoardErr:
-		.ascii	"WARNING: illegal board size - enter an integer in the range [4, 30]: "
-	boardPrompt:
-		.asciiz	"Enter board size: "
+	inBoardSizeErr:			.ascii	"WARNING: illegal board size - enter an integer in the range [4, 30]: "
+	inBoardSizeErrLen:		.word	69
+	inBoardSizePrompt:		.asciiz	"Enter board size: "
+	inBoardSizePromptLen:	.word	18
 		
-	# generation prompt and error message ###############################
-	inGenErr:
-		.asciiz	"WARNING: illegal number of generations, try again: "
-	genPrompt:
-		.asciiz	"Enter number of generations to run: "
+	inGenErr: 		.asciiz	"WARNING: illegal number of generations, try again: "
+	inGenErrLen:	.word	51
+	genPrompt: 		.asciiz	"Enter number of generations to run: "
+	genPromptLen: 	.word 	36
 		
 	# live cell num prompt and error message ########################
-	inNumErr:
-		.asciiz	"WARNING: illegal number of live cells, try again: "
-	numPrompt:
-		.asciiz	"Enter number of live cells: "
+	inNumErr:		.asciiz	"WARNING: illegal number of live cells, try again: "
+	numPrompt:		.asciiz	"Enter number of live cells: "
 		
 	# locations prompt and error message ########################
 	inLocErr:
@@ -74,57 +72,32 @@ ONE_PLUS_MAX_GENS = 	21
 		.space 900
 		
 	# asciiz stuff needed for printing board
-	charA:
-		.asciiz "A"
-	charB:
-		.asciiz "B"
-	charC:
-		.asciiz "C"
-	charD:
-		.asciiz "D"
-	charE:
-		.asciiz "E"
-	charF:
-		.asciiz "F"
-	charG:
-		.asciiz "G"
-	charH:
-		.asciiz "H"
-	charI:
-		.asciiz "I"
-	charJ:
-		.asciiz "J"
-	charK:
-		.asciiz "K"
-	charL:
-		.asciiz "L"
-	charM:
-		.asciiz "M"
-	charN:
-		.asciiz "N"
-	charO:
-		.asciiz "O"
-	charP:
-		.asciiz "P"
-	charQ:
-		.asciiz "Q"
-	charR:
-		.asciiz "R"
-	charS:
-		.asciiz "S"
-	charT:
-		.asciiz "T"
-	charU:
-		.asciiz "U"
+	charA:	.asciiz "A"
+	charB:	.asciiz "B"
+	charC:	.asciiz "C"
+	charD:	.asciiz "D"
+	charE:	.asciiz "E"
+	charF:	.asciiz "F"
+	charG:	.asciiz "G"
+	charH:	.asciiz "H"
+	charI:	.asciiz "I"
+	charJ:	.asciiz "J"
+	charK:	.asciiz "K"
+	charL:	.asciiz "L"
+	charM:	.asciiz "M"
+	charN:	.asciiz "N"
+	charO:	.asciiz "O"
+	charP:	.asciiz "P"
+	charQ:	.asciiz "Q"
+	charR:	.asciiz "R"
+	charS:	.asciiz "S"
+	charT:	.asciiz "T"
+	charU:	.asciiz "U"
 		
-	plus:
-		.asciiz	"+"
-	dash:
-		.asciiz	"-"
-	sideBar:
-		.asciiz	"|"
-	emptySpace:
-		.asciiz " "
+	plus:		.asciiz	"+"
+	dash:		.asciiz	"-"
+	sideBar:	.asciiz	"|"
+	emptySpace:	.asciiz " "
 		
 	ages:	
 		.word	charA, charB, charC, charD, charE, charF, charG, charH, charI, charJ
@@ -151,23 +124,23 @@ ONE_PLUS_MAX_GENS = 	21
 
 		# Move to the next line in the terminal
 		li	$v0, PRINT_STR
-		li	$a0, 1			# 1 in a1 for STDOUT
-		la	$a1, new_line	# load addr of newline string
-		li	$a2, 1			# newline is 1 length
+		li	$a0, STDOUT
+		la	$a1, new_line
+		li	$a2, 1
 		syscall
 		
 		# Print game banner
 		li	$v0, PRINT_STR
-		la	$a1, banner_border	
-		li	$a2, 38				# banner is 38 characters wide
+		la	$a1, bannerBorder
+		lw	$a2, bannerLen
 		syscall
 
 		li	$v0, PRINT_STR
-		la	$a1, banner_middle	
+		la	$a1, bannerMiddle	
 		syscall
 
 		li	$v0, PRINT_STR
-		la	$a1, banner_border
+		la	$a1, bannerBorder
 		syscall
 		
 		li	$v0, PRINT_STR
@@ -177,21 +150,21 @@ ONE_PLUS_MAX_GENS = 	21
 
 		# Setup syscall for board size input prompt
 		li	$v0, PRINT_STR
-		la	$a1, boardPrompt
-		li	$a2, 18
+		la	$a1, inBoardSizePrompt
+		lw	$a2, inBoardSizePromptLen
 
 	_in_board_size_loop:
 		syscall
 
 		# Read input from user up to 16 characters
 		li	$v0, READ_STR
-		li	$a0, 0						# 0 for STDIN
-		la	$a1, integer_input_buffer
-		li	$a2, 16
+		li	$a0, STDIN
+		la	$a1, integerInputBuffer
+		lw	$a2, integerInputBufferLen
 		syscall
 		
 		# Convert input string into integer
-		la	$a0, integer_input_buffer
+		la	$a0, integerInputBuffer
 		jal atoi						# after this $v0 should contain the integer representation
 
 		add	$t1, $v0, $zero				# now t1 contains integer representation
@@ -201,9 +174,9 @@ ONE_PLUS_MAX_GENS = 	21
 		
 		# Setup to write error message to user if bad input
 		li	$v0, PRINT_STR
-		li	$a0, 1
-		la	$a1, inBoardErr
-		li	$a2, 69
+		li	$a0, STDOUT
+		la	$a1, inBoardSizeErr
+		lw	$a2, inBoardSizeErrLen
 		
 		# remember: t1 is user's int, t2 is max, and t3 is min
 
@@ -221,9 +194,9 @@ ONE_PLUS_MAX_GENS = 	21
 		
 		# print generation count input prompt to user
 		li	$v0, PRINT_STR
-		li	$a0, 1
+		li	$a0, STDOUT
 		la	$a1, genPrompt
-		li	$a2, 36
+		lw	$a2, genPromptLen
 
 	_in_gen_retry:
 		# syscall for printing the prompt
@@ -232,7 +205,7 @@ ONE_PLUS_MAX_GENS = 	21
 		## fixed up to here #################################
 
 		li	$v0, PRINT_STR
-		li	$a0, 1
+		li	$a0, STDOUT
 		la	$a1, new_line
 		li	$a2, 1
 		syscall
@@ -897,44 +870,3 @@ ONE_PLUS_MAX_GENS = 	21
 		lw	$s0,  0($sp)
 		addi	$sp, $sp, 36
 		jr	$ra
-
-
-	# Name:		atoi
-	#
-	# Description:	takes a string buffer which is expected to contain only integers and return the integer representation
-	#
-	# Arguments:	a0 contains the address of the str buffer
-	#
-	# Destroys:		$t0, $t1, $t2, $t3
-	#
-	# Returns:	v0 contains the integer representation
-	atoi:
-		# Assume input string is in $a0
-		li      $v0, 0          # Clear result register, this holds the converted number
-		lb      $t0, 0($a0)     # Load the first byte of the string
-		li      $t1, '-'        # Prepare '-' for comparison
-		bne     $t0, $t1, atoi_skip_neg # If not negative, skip negation setup
-		addi    $a0, $a0, 1     # Increment string pointer to skip '-' character
-		li      $t2, -1         # Flag for negative number
-
-	atoi_skip_neg:
-		li      $t2, 1          # Flag for positive number (default)
-
-	atoi_loop:
-		lb      $t0, 0($a0)     # Load the current character from string
-		beq     $t0, $zero, atoi_done # If it's '\0', we are done
-		li      $t3, '0'        # Load ASCII value of '0'
-		sub     $t0, $t0, $t3   # Convert ASCII to integer ('0' -> 0, '1' -> 1, ..., '9' -> 9)
-		bltz    $t0, atoi_done  # If result is negative, character is not a numeric char
-		li      $t3, 9          # Maximum single digit
-		bgt     $t0, $t3, atoi_done # If result > 9, not a numeric char
-
-		mul     $v0, $v0, 10    # Multiply current result by 10
-		add     $v0, $v0, $t0   # Add new digit to result
-		addi    $a0, $a0, 1     # Move to the next character
-		j       atoi_loop       # Repeat the loop
-
-	atoi_done:
-		mul     $v0, $v0, $t2   # Apply the sign to the result
-		jr      $ra             # Return to caller
-
