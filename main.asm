@@ -43,8 +43,8 @@ MAX_GENS 			= 20
 		
 	inGenErr: 		.asciiz	"WARNING: illegal number of generations, try again: "
 	inGenErrLen:	.word	51
-	genPrompt: 		.asciiz	"Enter an integer in the range [1, 20] for number of generations to run (or leave blank for default): "
-	genPromptLen: 	.word 	101
+	inGenPrompt: 		.asciiz	"Enter an integer in the range [1, 20] for number of generations to run (or leave blank for default): "
+	inGenPromptLen: 	.word 	101
 		
 	inNumErr:		.asciiz	"WARNING: illegal number of live cells, try again: "
 	inNumErrLen:	.word	50
@@ -233,8 +233,8 @@ MAX_GENS 			= 20
 		# print generation count input prompt to user
 		li	$v0, PRINT_STR
 		li	$a0, STDOUT
-		la	$a1, genPrompt
-		lw	$a2, genPromptLen
+		la	$a1, inGenPrompt
+		lw	$a2, inGenPromptLen
 
 	_in_gen_loop:
 		# syscall for printing the prompt
@@ -254,7 +254,7 @@ MAX_GENS 			= 20
 		#li	$v0, READ_INT	# read int, this is the number of generations
 		syscall
 		
-		addi	$t1, $zero, MAX_GENS 	#t1 is 1+max board size now
+		addi	$t1, $zero, MAX_GENS 	# t1 is max gens now
 		la		$a0, inGenErr
 		
 		#check it is below max
