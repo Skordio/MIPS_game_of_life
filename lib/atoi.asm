@@ -1,15 +1,16 @@
+# Name:		atoi
+#
+# Description:	takes a string buffer which is expected to contain only integers and return the integer representation
+#
+# Arguments:	a0 contains the address of the str buffer
+#
+# Destroys:		$t0, $t1, $t2, $t3
+#
+# Returns:	v0 contains the integer representation
+
 .text
     .globl atoi
-    
-	# Name:		atoi
-	#
-	# Description:	takes a string buffer which is expected to contain only integers and return the integer representation
-	#
-	# Arguments:	a0 contains the address of the str buffer
-	#
-	# Destroys:		$t0, $t1, $t2, $t3
-	#
-	# Returns:	v0 contains the integer representation
+
     atoi:
 		# Assume input string is in $a0
 		li      $v0, 0          # Clear result register, this holds the converted number

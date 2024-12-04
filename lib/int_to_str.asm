@@ -1,16 +1,17 @@
+# Name:		int_to_string
+#
+# Description:	takes an integer of up to 11 digits and converts it into a string representation
+#
+# Arguments:	a0 contains the integer
+#               a1 contains a buffer of .space 12, where the string will end up
+#
+# Destroys:		t0, t1, t2, t3, t4
+#
+# Returns:	nothing
+
 .text
     .globl int_to_string
 
-	# Name:		int_to_string
-	#
-	# Description:	takes an integer of up to 11 digits and converts it into a string representation
-	#
-	# Arguments:	a0 contains the integer
-    #               a1 contains a buffer of .space 12, where the string will end up
-	#
-	# Destroys:		t0, t1, t2, t3, t4
-	#
-	# Returns:	nothing
     int_to_string:
         # Initial setup
         li $t0, 10               # Divider for mod and div operations
